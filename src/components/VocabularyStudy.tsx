@@ -23,6 +23,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
   const [searchTerm, setSearchTerm] = useState('');
   const [hoverGrade, setHoverGrade] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Canvas State
   const [paths, setPaths] = useState<any[]>([]);
@@ -211,9 +212,71 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
   const background = useTransform(x, [-150, 0, 150], ["#ef444433", "rgba(255,255,255,0.05)", "#10b98133"]);
 
   return (
-    <div className="flex flex-col items-center max-w-[1200px] mx-auto min-h-[900px] py-10 px-4 w-full">
-      {/* Header Tabs & Actions */}
-      <div className="flex flex-col md:flex-row items-center gap-6 mb-12 w-full max-w-2xl justify-between">
+    <div className="flex flex-col items-center max-w-[1200px] mx-auto min-h-[900px] py-10 px-4 w-full relative">
+      {/* Mobile-only Header (Compact) */}
+      <div className="md:hidden flex items-center justify-between w-full max-w-2xl mb-10 px-2 group">
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-black text-white tracking-tighter leading-none mb-1 group-hover:text-primary transition-colors">Study Session</h2>
+          <div className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">{vocabList.length} Words Loaded</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`size-12 rounded-2xl border transition-all flex items-center justify-center ${showSettings ? 'bg-primary border-primary text-white shadow-[0_0_20px_rgba(244,114,182,0.4)]' : 'bg-white/5 border-white/10 text-gray-400 active:scale-90 hover:border-white/20'}`}
+        >
+          <span className={`material-symbols-outlined text-2xl transition-transform duration-300 ${showSettings ? 'rotate-90' : ''}`}>settings</span>
+        </button>
+      </div>
+
+      {/* Mobile Settings Overlay */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="md:hidden absolute top-24 left-4 right-4 z-[100] glass-panel border border-white/10 p-8 rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-8"
+          >
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">View Mode</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => { setViewMode('card'); setShowSettings(false); }} className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-2 transition-all ${viewMode === 'card' ? 'bg-white text-primary shadow-lg' : 'bg-white/5 text-gray-400'}`}>
+                  <span className="material-symbols-outlined text-lg">style</span>
+                  Flashcards
+                </button>
+                <button onClick={() => { setViewMode('list'); setShowSettings(false); }} className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex flex-col items-center gap-2 transition-all ${viewMode === 'list' ? 'bg-white text-primary shadow-lg' : 'bg-white/5 text-gray-400'}`}>
+                  <span className="material-symbols-outlined text-lg">list_alt</span>
+                  Word List
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Study Method</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setStudyMode('mastery')} className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${studyMode === 'mastery' ? 'bg-primary text-white' : 'bg-white/5 text-gray-400'}`}>Mastery</button>
+                <button onClick={() => setStudyMode('recognition')} className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${studyMode === 'recognition' ? 'bg-primary text-white' : 'bg-white/5 text-gray-400'}`}>Recognition</button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Ordering</h4>
+              <button
+                onClick={toggleShuffle}
+                className={`w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${isShuffle ? 'bg-indigo-500 text-white shadow-lg' : 'bg-white/5 text-gray-400'}`}
+              >
+                <span className="material-symbols-outlined text-lg">{isShuffle ? 'shuffle_on' : 'shuffle'}</span>
+                {isShuffle ? 'Shuffled Mode' : 'Sequential Mode'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Header Tabs & Actions (Hidden on Mobile) */}
+      <div className="hidden md:flex flex-col md:flex-row items-center gap-6 mb-12 w-full max-w-2xl justify-between">
         <div className="flex h-12 w-64 items-center justify-center rounded-2xl bg-white/5 p-1 border border-white/10 shadow-xl">
           <button
             onClick={() => setViewMode('card')}
@@ -266,16 +329,8 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
             exit={{ opacity: 0, scale: 0.95 }}
             className="flex flex-col items-center gap-10 w-full"
           >
-            {/* Session Progress & Mobile Nav */}
-            <div className="w-full max-w-2xl px-4 flex items-center gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className="xl:hidden size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 disabled:opacity-0 active:scale-95 transition-all"
-              >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
-              </button>
-
+            {/* Session Progress (Nav arrows removed on mobile here) */}
+            <div className="w-full max-w-2xl px-4 flex items-center justify-center">
               <div className="flex-1 flex flex-col gap-2">
                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
                   <motion.div
@@ -284,23 +339,31 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                     className="h-full bg-gradient-to-r from-primary to-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
                   />
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center px-1">
                   <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Session Progress</span>
                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{currentIndex + 1} / {shuffledList.length}</span>
                 </div>
               </div>
-
-              <button
-                onClick={handleNext}
-                disabled={currentIndex === shuffledList.length - 1}
-                className="xl:hidden size-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 disabled:opacity-0 active:scale-95 transition-all"
-              >
-                <span className="material-symbols-outlined text-xl">arrow_forward</span>
-              </button>
             </div>
 
-            {/* Flashcard Wrapper */}
-            <div className="perspective-1000 w-full flex justify-center relative touch-none">
+            {/* Flashcard Wrapper with Internal Nav Arrows */}
+            <div className="perspective-1000 w-full flex justify-center relative touch-none group/study">
+              {/* Mobile Card-Side Navigation Arrows */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                disabled={currentIndex === 0}
+                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-50 size-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
+              >
+                <span className="material-symbols-outlined text-2xl">chevron_left</span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                disabled={currentIndex === shuffledList.length - 1}
+                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 z-50 size-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
+              >
+                <span className="material-symbols-outlined text-2xl">chevron_right</span>
+              </button>
+
               <motion.div
                 className={`relative w-full max-w-2xl aspect-[1.6/1] cursor-pointer group`}
                 style={{ x }}
@@ -485,20 +548,20 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 </motion.div>
               </motion.div>
 
-              {/* Desktop-only Side Arrows */}
+              {/* Tablet & Desktop Side Arrows */}
               <button
-                onClick={handlePrev}
+                onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                 disabled={currentIndex === 0}
-                className="hidden xl:flex absolute -left-28 top-1/2 -translate-y-1/2 size-16 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-0 items-center justify-center transition-all border border-white/10 group shadow-2xl z-20"
+                className="hidden md:flex absolute -left-16 xl:-left-28 top-1/2 -translate-y-1/2 size-14 xl:size-16 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-0 items-center justify-center transition-all border border-white/10 group shadow-2xl z-20"
               >
-                <span className="material-symbols-outlined text-white text-3xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                <span className="material-symbols-outlined text-white text-2xl xl:text-3xl group-hover:-translate-x-1 transition-transform">arrow_back</span>
               </button>
               <button
-                onClick={handleNext}
+                onClick={(e) => { e.stopPropagation(); handleNext(); }}
                 disabled={currentIndex === shuffledList.length - 1}
-                className="hidden xl:flex absolute -right-28 top-1/2 -translate-y-1/2 size-16 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-0 items-center justify-center transition-all border border-white/10 group shadow-2xl z-20"
+                className="hidden md:flex absolute -right-16 xl:-right-28 top-1/2 -translate-y-1/2 size-14 xl:size-16 rounded-full bg-white/5 hover:bg-white/10 disabled:opacity-0 items-center justify-center transition-all border border-white/10 group shadow-2xl z-20"
               >
-                <span className="material-symbols-outlined text-white text-3xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <span className="material-symbols-outlined text-white text-2xl xl:text-3xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </button>
             </div>
 
