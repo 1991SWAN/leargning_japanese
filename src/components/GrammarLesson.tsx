@@ -62,7 +62,7 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
   const currentLevelColor = current ? levelColorMap[current.jlpt_level] : 'rgba(255, 255, 255, 0.2)';
 
   return (
-    <div className="max-w-[1200px] mx-auto w-full min-h-[800px] py-10 px-4">
+    <div className="max-w-[1200px] mx-auto w-full min-h-[800px] py-10 px-4 overflow-x-hidden">
       <AnimatePresence mode="wait">
         {!selectedId ? (
           /* --- CATALOG VIEW (Grid) --- */
@@ -148,7 +148,7 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
             {/* Back Button */}
             <button
               onClick={() => setSelectedId(null)}
-              className="absolute -top-4 -left-4 z-20 flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest group shadow-2xl"
+              className="absolute -top-4 left-0 z-20 flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest group shadow-2xl"
             >
               <span className="material-symbols-outlined text-lg transition-transform group-hover:-translate-x-1">arrow_back</span>
               Back to Catalog
@@ -195,7 +195,7 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                     </div>
 
                     <motion.h1
-                      className="text-7xl md:text-8xl font-black mb-16 jp-text tracking-tighter leading-none relative z-10 text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                      className="text-4xl md:text-8xl font-black mb-16 jp-text tracking-tighter leading-none relative z-10 text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                     >
@@ -203,15 +203,15 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                     </motion.h1>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                      <div className="p-10 rounded-[40px] bg-white/5 border border-white/5 relative overflow-hidden group shadow-2xl">
+                      <div className="p-6 md:p-10 rounded-[40px] bg-white/5 border border-white/5 relative overflow-hidden group shadow-2xl">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                           <span className="material-symbols-outlined text-5xl">chat_bubble</span>
                         </div>
                         <h4 className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] mb-4 text-white">의미 (Meaning)</h4>
-                        <p className="text-3xl font-bold leading-tight text-white">{current.meaning}</p>
+                        <p className="text-2xl md:text-3xl font-bold leading-tight text-white">{current.meaning}</p>
                       </div>
 
-                      <div className="p-10 rounded-[40px] bg-primary/5 border border-primary/10 relative overflow-hidden group shadow-2xl">
+                      <div className="p-6 md:p-10 rounded-[40px] bg-primary/5 border border-primary/10 relative overflow-hidden group shadow-2xl">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                           <span className="material-symbols-outlined text-5xl">rebase_edit</span>
                         </div>
@@ -245,17 +245,20 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                               else next.add(idx);
                               setRevealedExamples(next);
                             }}
-                            className={`p-10 rounded-[48px] bg-white/5 border border-white/5 flex flex-col gap-8 transition-all group overflow-hidden relative shadow-2xl cursor-pointer ${revealedExamples.has(idx) ? 'ring-1 ring-primary/30 bg-white/[0.08]' : ''}`}
+                            className={`p-6 md:p-10 rounded-[32px] md:rounded-[48px] bg-white/5 border border-white/5 flex flex-col gap-6 md:gap-8 transition-all group overflow-hidden relative shadow-2xl cursor-pointer ${revealedExamples.has(idx) ? 'ring-1 ring-primary/30 bg-white/[0.08]' : ''}`}
                           >
                             <div className="flex justify-between items-start relative z-10">
-                              <p className="jp-text text-3xl font-medium leading-relaxed text-indigo-50/90 pr-10">
+                              <p className="jp-text text-2xl md:text-3xl font-medium leading-relaxed text-indigo-50/90 pr-10">
                                 <FuriganaText text={ex.jp} />
                               </p>
                               <button
-                                className="p-6 bg-white/5 text-white rounded-[24px] opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white scale-90 shadow-xl"
-                                onClick={() => speakJapanese(sanitizeForTTS(ex.jp))}
+                                className="p-4 md:p-6 bg-white/5 text-white rounded-[20px] md:rounded-[24px] opacity-100 md:opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white scale-90 shadow-xl"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  speakJapanese(sanitizeForTTS(ex.jp));
+                                }}
                               >
-                                <span className="material-symbols-outlined text-3xl">volume_up</span>
+                                <span className="material-symbols-outlined text-2xl md:text-3xl">volume_up</span>
                               </button>
                             </div>
 
