@@ -20,10 +20,12 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
   const [showGuide, setShowGuide] = useState(true);
   const [isRandom, setIsRandom] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [paths, setPaths] = useState<any[]>([]);
-  const [guideOpacity, setGuideOpacity] = useState(0.15);
+  const [paths, setPaths] = useState<any[]>([]); // Using relative coordinates {x: 0..1, y: 0..1}
+  const [guideOpacity, setGuideOpacity] = useState(0.2);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hasSetInitialIndex = useRef(false);
 
   // Data sanitization (漢[かん] -> 漢)
@@ -54,23 +56,44 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
   const currentItem = items[currentIndex] || items[0];
 
+  // Dynamic Resize Handling
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        const { width, height } = entry.contentRect;
+        setCanvasSize({ width, height });
+
+        if (canvasRef.current) {
+          canvasRef.current.width = width;
+          canvasRef.current.height = height;
+        }
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvasSize.width === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = '#4913ec'; // Premium Primary Color
+    ctx.lineWidth = Math.max(6, canvasSize.width / 35); // Stroke width scales with canvas size
+    ctx.strokeStyle = '#6366f1'; // Premium Indigo
 
     redrawCanvas();
-  }, [paths]);
+  }, [paths, canvasSize]);
 
   const redrawCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvasSize.width === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -79,9 +102,10 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
     paths.forEach(path => {
       if (path.length === 0) return;
       ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
+      // Map relative coordinates to current pixel size
+      ctx.moveTo(path[0].x * canvas.width, path[0].y * canvas.height);
       path.forEach((point: any) => {
-        ctx.lineTo(point.x, point.y);
+        ctx.lineTo(point.x * canvas.width, point.y * canvas.height);
       });
       ctx.stroke();
     });
@@ -91,10 +115,12 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const clientX = (e.clientX || (e.touches && e.touches[0].clientX)) ?? 0;
+    const clientY = (e.clientY || (e.touches && e.touches[0].clientY)) ?? 0;
+
+    // Convert to relative coordinates (0 to 1)
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
     return { x, y };
   };
 
@@ -175,26 +201,26 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
           <div className="p-10 flex flex-col items-center gap-10">
             {/* Main Area with Navigation */}
-            <div className="w-full flex items-center justify-between gap-6">
+            {/* Main Area with Navigation */}
+            <div className="w-full flex items-center justify-between gap-4 md:gap-6">
               <button
                 onClick={() => navigateItems('prev')}
                 disabled={!isRandom && currentIndex === 0}
-                className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center transition-all group"
+                className="hidden md:flex size-14 rounded-2xl bg-white/5 hover:bg-white/10 disabled:opacity-0 flex items-center justify-center transition-all group shrink-0"
               >
-                <span className="material-symbols-outlined text-white group-hover:-translate-x-1 transition-transform">chevron_left</span>
+                <span className="material-symbols-outlined text-white text-3xl group-hover:-translate-x-1 transition-transform">chevron_left</span>
               </button>
 
-              <div className="relative group/canvas">
+              <div className="flex-1 max-w-[500px] w-full relative group/canvas">
                 <motion.div
                   key={currentItem.text}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="relative aspect-square w-[320px] md:w-[400px] bg-black/40 rounded-[40px] border border-white/10 shadow-inner overflow-hidden flex items-center justify-center cursor-crosshair"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  ref={containerRef}
+                  className="relative aspect-square w-full bg-black/40 rounded-[32px] md:rounded-[40px] border border-white/10 shadow-inner overflow-hidden flex items-center justify-center cursor-crosshair"
                 >
                   <canvas
                     ref={canvasRef}
-                    width={400}
-                    height={400}
                     onMouseDown={startDrawing}
                     onMouseMove={draw}
                     onMouseUp={endDrawing}
@@ -207,78 +233,108 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
                   {showGuide && (
                     <div
-                      className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300"
+                      className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300 select-none"
                       style={{ opacity: guideOpacity }}
                     >
-                      <span className="text-[200px] md:text-[240px] font-kanji text-white select-none leading-none">
+                      <span className="text-[min(40vw,240px)] font-kanji text-white leading-none">
                         {sanitize(currentItem.text)}
                       </span>
                     </div>
                   )}
 
-                  <div className="absolute inset-0 pointer-events-none opacity-5" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+                  {/* Grit Grid */}
+                  <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10%' }}></div>
+                  <div className="absolute inset-0 border-[0.5px] border-white/5 pointer-events-none opacity-20">
+                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10" />
+                    <div className="absolute top-0 left-1/2 w-[1px] h-full bg-white/10" />
+                  </div>
                 </motion.div>
 
-                {/* Floating Progress */}
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-[10px] font-black text-white shadow-lg">
-                  {currentIndex + 1} / {items.length}
+                {/* Progress & Nav inside canvas area for mobile */}
+                <div className="flex items-center justify-between mt-6 px-1 lg:absolute lg:-bottom-12 lg:left-0 lg:w-full lg:px-0">
+                  <div className="md:hidden flex gap-2">
+                    <button
+                      onClick={() => navigateItems('prev')}
+                      disabled={!isRandom && currentIndex === 0}
+                      className="size-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center disabled:opacity-0"
+                    >
+                      <span className="material-symbols-outlined text-white text-xl">chevron_left</span>
+                    </button>
+                    <button
+                      onClick={() => navigateItems('next')}
+                      disabled={!isRandom && currentIndex === items.length - 1}
+                      className="size-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center disabled:opacity-0"
+                    >
+                      <span className="material-symbols-outlined text-white text-xl">chevron_right</span>
+                    </button>
+                  </div>
+                  <div className="px-5 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/20 text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                    {currentIndex + 1} / {items.length}
+                  </div>
                 </div>
               </div>
 
               <button
                 onClick={() => navigateItems('next')}
                 disabled={!isRandom && currentIndex === items.length - 1}
-                className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 disabled:opacity-20 flex items-center justify-center transition-all group"
+                className="hidden md:flex size-14 rounded-2xl bg-white/5 hover:bg-white/10 disabled:opacity-0 flex items-center justify-center transition-all group shrink-0"
               >
-                <span className="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">chevron_right</span>
+                <span className="material-symbols-outlined text-white text-3xl group-hover:translate-x-1 transition-transform">chevron_right</span>
               </button>
             </div>
 
             {/* Controls Bar */}
-            <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-[24px] p-5 flex flex-wrap items-center justify-center gap-4">
-              <div className="flex items-center gap-3 px-4 border-r border-white/10">
-                <span className="material-symbols-outlined text-primary text-sm">visibility</span>
+            <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-[32px] p-2 flex flex-col md:flex-row items-center gap-2">
+              <div className="flex items-center gap-3 px-6 h-14 w-full md:w-auto md:border-r border-white/10">
+                <span className="material-symbols-outlined text-primary text-sm shrink-0">visibility</span>
                 <input
-                  type="range" min="0" max="0.5" step="0.05"
+                  type="range" min="0" max="0.8" step="0.05"
                   value={guideOpacity}
                   onChange={(e) => setGuideOpacity(parseFloat(e.target.value))}
-                  className="w-16 accent-primary"
+                  className="flex-1 md:w-24 accent-primary"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => speakJapanese(sanitize(currentItem.text))}
-                  className="size-11 rounded-xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all group"
-                  title="Listen"
-                >
-                  <span className="material-symbols-outlined">volume_up</span>
-                </button>
-                <button
-                  onClick={() => setIsRandom(!isRandom)}
-                  className={`size-11 rounded-xl flex items-center justify-center transition-all ${isRandom ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 hover:bg-white/10 text-gray-400'}`}
-                  title="Randomize"
-                >
-                  <span className="material-symbols-outlined">casino</span>
-                </button>
-                <button
-                  onClick={undoPath}
-                  disabled={paths.length === 0}
-                  className="size-11 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-20 flex items-center justify-center transition-all"
-                  title="Undo"
-                >
-                  <span className="material-symbols-outlined">undo</span>
-                </button>
-                <button
-                  onClick={clearCanvas}
-                  className="size-11 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-all"
-                  title="Clear"
-                >
-                  <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
-                </button>
+              <div className="flex items-center justify-between w-full md:w-auto md:flex-1 px-4 md:px-2 gap-2 pb-2 md:pb-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => speakJapanese(sanitize(currentItem.text))}
+                    className="size-11 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all"
+                    title="Listen"
+                  >
+                    <span className="material-symbols-outlined">volume_up</span>
+                  </button>
+                  <button
+                    onClick={() => setIsRandom(!isRandom)}
+                    className={`size-11 rounded-2xl flex items-center justify-center transition-all ${isRandom ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-gray-400'}`}
+                    title="Randomize"
+                  >
+                    <span className="material-symbols-outlined text-xl">casino</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 h-11 px-2 bg-white/5 rounded-2xl">
+                  <button
+                    onClick={undoPath}
+                    disabled={paths.length === 0}
+                    className="size-10 rounded-xl hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all"
+                    title="Undo"
+                  >
+                    <span className="material-symbols-outlined">undo</span>
+                  </button>
+                  <div className="w-px h-4 bg-white/10" />
+                  <button
+                    onClick={clearCanvas}
+                    className="size-10 rounded-xl hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all"
+                    title="Clear"
+                  >
+                    <span className="material-symbols-outlined text-[22px]">delete_sweep</span>
+                  </button>
+                </div>
+
                 <button
                   onClick={() => setShowGuide(!showGuide)}
-                  className={`size-11 rounded-xl flex items-center justify-center transition-all ${showGuide ? 'bg-accent/10 text-accent' : 'bg-white/5 text-gray-400'}`}
+                  className={`size-11 rounded-2xl flex items-center justify-center transition-all ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-white/5 text-gray-500'}`}
                   title="Toggle Guide"
                 >
                   <span className="material-symbols-outlined">{showGuide ? 'visibility' : 'visibility_off'}</span>
