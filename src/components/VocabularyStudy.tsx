@@ -435,9 +435,15 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </motion.span>
                       <motion.h2
                         layout
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(2.5rem,10vw,4rem)]' : 'text-[clamp(3.5rem,15vw,7rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-tight`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(1.5rem,6vw,2.5rem)]' : 'text-[clamp(2rem,10vw,4.5rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
                       >
-                        {studyMode === 'mastery' ? currentItem.meaning : (currentItem.kanji || currentItem.furigana)}
+                        {studyMode === 'mastery' ? (
+                          currentItem.meaning
+                        ) : (
+                          <FuriganaText
+                            text={`${currentItem.kanji || currentItem.furigana}${currentItem.kanji && currentItem.kanji !== currentItem.furigana ? `[${currentItem.furigana}]` : ''}`}
+                          />
+                        )}
                       </motion.h2>
                     </div>
 
@@ -508,16 +514,16 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,16vw,7rem)]' : 'text-[clamp(2.5rem,10vw,5rem)]'} font-black mb-4 jp-text text-white leading-tight`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(2rem,10vw,5rem)]' : 'text-[clamp(1.5rem,6vw,2.5rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
                       >
-                        {studyMode === 'mastery' ? (currentItem.kanji || currentItem.furigana) : currentItem.meaning}
+                        {studyMode === 'mastery' ? (
+                          <FuriganaText
+                            text={`${currentItem.kanji || currentItem.furigana}${currentItem.kanji && currentItem.kanji !== currentItem.furigana ? `[${currentItem.furigana}]` : ''}`}
+                          />
+                        ) : (
+                          currentItem.meaning
+                        )}
                       </motion.h3>
-
-                      {studyMode === 'mastery' && (
-                        <div className="px-6 py-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-8">
-                          <span className="text-2xl font-bold text-indigo-300">{currentItem.furigana}</span>
-                        </div>
-                      )}
 
                       {currentItem.examples && (
                         <div className="space-y-4 max-w-md">
