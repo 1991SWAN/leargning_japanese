@@ -66,16 +66,29 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
         const { width, height } = entry.contentRect;
         setCanvasSize({ width, height });
 
+        // Explicitly sync physical pixels to CSS pixels
         if (canvasRef.current) {
           canvasRef.current.width = width;
           canvasRef.current.height = height;
+          redrawCanvas(); // Immediate redraw on resize
         }
       }
     });
 
     observer.observe(containerRef.current);
+
+    // Trigger initial size capture
+    const initialRect = containerRef.current.getBoundingClientRect();
+    if (initialRect.width > 0) {
+      setCanvasSize({ width: initialRect.width, height: initialRect.height });
+      if (canvasRef.current) {
+        canvasRef.current.width = initialRect.width;
+        canvasRef.current.height = initialRect.height;
+      }
+    }
+
     return () => observer.disconnect();
-  }, []);
+  }, [currentIndex]); // Re-run when item changes to catch the new container node
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -138,6 +151,7 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
     setPaths(prev => {
       const newPaths = [...prev];
+      if (newPaths.length === 0) return prev; // Safety check
       const lastPath = [...newPaths[newPaths.length - 1]];
       lastPath.push({ x, y });
       newPaths[newPaths.length - 1] = lastPath;
