@@ -416,7 +416,8 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       pointerEvents: revealStep === 0 ? 'auto' : 'none'
                     }}
                   >
-                    <div className="flex justify-between items-start z-10 w-full">
+                    {/* Top: Branding & Meta */}
+                    <div className="flex justify-between items-start z-10 w-full mb-2">
                       <div className="flex flex-col gap-1">
                         <span className="premium-tag text-xs">
                           {studyMode === 'mastery' ? 'Meaning Prompt' : 'Kanji Recognition'}
@@ -450,7 +451,8 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 text-center px-12 md:px-16">
+                    {/* Center: Main Content */}
+                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 text-center px-4 md:px-8">
                       <motion.span
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -476,6 +478,11 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                           />
                         )}
                       </motion.h2>
+                    </div>
+
+                    {/* Bottom: Guide */}
+                    <div className="text-center opacity-20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] z-10 mt-auto pb-2">
+                      {revealStep === 0 ? "Click to reveal answer" : "Swiping for evaluation"}
                     </div>
 
                     {/* Handwriting Canvas Overlay */}
@@ -516,10 +523,6 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                         </motion.div>
                       )}
                     </AnimatePresence>
-
-                    <div className="text-center opacity-20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] z-10 mt-auto pb-2">
-                      {revealStep === 0 ? "Click to reveal answer" : "Swiping for evaluation"}
-                    </div>
                   </motion.div>
 
                   {/* Back Side */}
@@ -531,6 +534,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       pointerEvents: revealStep === 1 ? 'auto' : 'none'
                     }}
                   >
+                    {/* Top: Result Meta */}
                     <div className="flex justify-between items-start z-10 w-full mb-6">
                       <span className="premium-tag text-xs bg-primary/20 text-primary">Correct Answer</span>
                       <button
@@ -541,7 +545,8 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </button>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center text-center px-12 md:px-16">
+                    {/* Center: Correct Text & Examples */}
+                    <div className="flex-1 flex flex-col items-center justify-center text-center px-4 md:px-8">
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -565,11 +570,11 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       {currentItem.examples && (
                         <div className="space-y-4 max-w-md">
                           <div className="p-4 rounded-xl bg-white/5 border border-white/5 relative group/jp">
-                            <p className="jp-text text-base leading-relaxed text-indigo-100 italic">
+                            <p className="jp-text text-sm md:text-base leading-relaxed text-indigo-100 italic">
                               "{(currentItem.examples as any)[0]?.jp}"
                             </p>
                           </div>
-                          <p className="text-sm text-gray-400 font-medium">
+                          <p className="text-xs md:text-sm text-gray-400 font-medium">
                             {(currentItem.examples as any)[0]?.kr || (currentItem.examples as any)[0]?.en}
                           </p>
                         </div>
