@@ -22,23 +22,28 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
 
   // Helper to calculate dynamic font size based on text length to keep it single-line
   const getDynamicFontSize = (text: string, isJapanese: boolean = false) => {
-    const len = text.length;
+    const len = text ? text.length : 0;
     let baseMin = 4;
     let baseMax = 8;
-    let vwBase = 15;
+    let vwBase = 12; // Reduced slightly for safe box fit
 
-    if (len > 10) {
+    if (len > 12) {
+      baseMin = 1.5;
+      baseMax = 3;
+      vwBase = 7;
+    } else if (len > 8) {
       baseMin = 2;
       baseMax = 4;
+      vwBase = 9;
+    } else if (len > 4) {
+      baseMin = 2.5;
+      baseMax = 5.5;
       vwBase = 10;
-    } else if (len > 6) {
-      baseMin = 3;
-      baseMax = 6;
-      vwBase = 12;
     }
 
     return `clamp(${baseMin}rem, ${vwBase}vw, ${baseMax}rem)`;
   };
+
   const [isShuffle, setIsShuffle] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hoverGrade, setHoverGrade] = useState<string | null>(null);
@@ -445,7 +450,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 text-center px-6">
+                    <div className="flex-1 flex flex-col items-center justify-center relative z-10 text-center px-12 md:px-16">
                       <motion.span
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -536,7 +541,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </button>
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center px-12 md:px-16">
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -644,7 +649,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 </div>
               </div>
             </div>
-          </motion.div>
+          </motion.div >
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
@@ -683,34 +688,37 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
               ))}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        )
+        }
+      </AnimatePresence >
 
       {/* Success Celebration Overlay */}
       <AnimatePresence>
-        {showSuccess && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-xl pointer-events-none"
-          >
+        {
+          showSuccess && (
             <motion.div
-              initial={{ scale: 0.5, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="flex flex-col items-center gap-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-xl pointer-events-none"
             >
-              <div className="size-32 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.5)]">
-                <span className="material-symbols-outlined text-white text-6xl">check_circle</span>
-              </div>
-              <h2 className="text-4xl font-black text-white uppercase tracking-tighter text-center">
-                Session Complete!<br />
-                <span className="text-green-400">Great Job!</span>
-              </h2>
+              <motion.div
+                initial={{ scale: 0.5, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="size-32 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_50px_rgba(16,185,129,0.5)]">
+                  <span className="material-symbols-outlined text-white text-6xl">check_circle</span>
+                </div>
+                <h2 className="text-4xl font-black text-white uppercase tracking-tighter text-center">
+                  Session Complete!<br />
+                  <span className="text-green-400">Great Job!</span>
+                </h2>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
