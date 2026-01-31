@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nihongo Master Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4913ec",
+                        "secondary": "#7c3aed",
+                        "accent": "#00d4ff",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0f0c18", // Darker base for better contrast with glass
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(73, 19, 236, 0.3);
+        }
+
+        .glass-nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-nav-item.active {
+            background: rgba(73, 19, 236, 0.25);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            box-shadow: 0 0 15px rgba(73, 19, 236, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="font-display bg-background-dark text-white antialiased overflow-hidden">
+<!-- Ambient Background Effects -->
+<div class="fixed inset-0 z-[-1] pointer-events-none">
+<div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/30 blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-secondary/20 blur-[120px]"></div>
+<div class="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-accent/10 blur-[100px]"></div>
+</div>
+<div class="flex h-screen w-full">
+<!-- Sidebar Navigation -->
+<aside class="w-72 h-full glass-panel flex flex-col border-r-0 z-20 hidden lg:flex">
+<div class="p-8">
+<div class="flex items-center gap-3 mb-10">
+<div class="size-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined text-white">translate</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">Nihongo<span class="text-primary font-black">Master</span></h1>
+<p class="text-xs text-gray-400 font-medium tracking-wider uppercase">Premium</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="glass-nav-item active flex items-center gap-3 px-4 py-3 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined text-white group-hover:text-accent transition-colors">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="glass-nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group text-gray-300 hover:text-white" href="#">
+<span class="material-symbols-outlined group-hover:text-accent transition-colors">school</span>
+<span class="font-medium">Lessons</span>
+</a>
+<a class="glass-nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group text-gray-300 hover:text-white" href="#">
+<span class="material-symbols-outlined group-hover:text-accent transition-colors">forum</span>
+<span class="font-medium">Community</span>
+</a>
+<a class="glass-nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group text-gray-300 hover:text-white" href="#">
+<span class="material-symbols-outlined group-hover:text-accent transition-colors">leaderboard</span>
+<span class="font-medium">Progress</span>
+</a>
+<a class="glass-nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group text-gray-300 hover:text-white" href="#">
+<span class="material-symbols-outlined group-hover:text-accent transition-colors">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6">
+<div class="glass-card p-4 rounded-xl flex items-center gap-3">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/50" data-alt="User avatar profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC2Fwn3KgpH5RwLwsEkTFfDFKg9min7l1c25ZDP7R6WSndLqrmMwXNhsoYplkhD6HdPFo7zYBO5emAnXacoBupA81a4lSTtv1z8sx0nTT5GficlERleuIUXW1VlUNqguu1MtHnkAa_Nk-_xFcdW1H49v9aUOV_kMb7yIekZZxV7uRCC1_D3vN8z-qR4w9ztGsm6TqKXYbkfEUch5LvSiW-g9-bSXaSu3r0wCYKHwpEQ2qlzIEYXobjt9IVHTBHAqZWl-3woV8JrWtxE");'></div>
+<div class="flex flex-col">
+<p class="text-sm font-semibold text-white">Alex Johnson</p>
+<p class="text-xs text-gray-400">N5 Level • 450 XP</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Header -->
+<header class="h-20 px-8 flex items-center justify-between glass-panel border-b-0 border-l lg:border-l-0 z-10 shrink-0">
+<div class="lg:hidden flex items-center gap-3">
+<button class="text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-bold text-lg">Nihongo Master</span>
+</div>
+<div class="hidden lg:flex w-full justify-end items-center gap-6">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-gray-400">search</span>
+</div>
+<input class="bg-white/5 border border-white/10 text-white text-sm rounded-xl focus:ring-primary focus:border-primary block w-64 pl-10 p-2.5 placeholder-gray-400 transition-all focus:bg-white/10" placeholder="Search lessons, kanji..." type="text"/>
+</div>
+<button class="relative p-2 rounded-xl hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-300">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full animate-pulse"></span>
+</button>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-4 lg:p-10 pb-32">
+<div class="max-w-7xl mx-auto flex flex-col gap-8">
+<!-- Welcome & Streak Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="flex flex-col gap-1">
+<h2 class="text-gray-400 text-sm font-medium uppercase tracking-widest">Dashboard</h2>
+<h1 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+                                Good Morning, <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Alex</span>
+</h1>
+<p class="text-gray-400 mt-2 text-lg">Ready to master Japanese today?</p>
+</div>
+<div class="flex items-center self-start md:self-end">
+<div class="glass-card px-5 py-3 rounded-2xl flex items-center gap-3 border-l-4 border-l-orange-500">
+<div class="p-2 bg-orange-500/20 rounded-full text-orange-400">
+<span class="material-symbols-outlined fill-current">local_fire_department</span>
+</div>
+<div>
+<p class="text-2xl font-bold text-white leading-none">7 Day</p>
+<p class="text-xs text-gray-400 font-medium uppercase tracking-wider mt-1">Study Streak</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">menu_book</span>
+</div>
+<div class="flex items-start justify-between mb-4">
+<div>
+<p class="text-gray-400 text-sm font-medium">Words Learned</p>
+<h3 class="text-3xl font-bold text-white mt-1">450<span class="text-base text-gray-500 font-normal">/500</span></h3>
+</div>
+<div class="relative size-12">
+<svg class="size-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"></path>
+<path class="text-accent drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="90, 100" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-accent">90%</div>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 w-fit px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-base">trending_up</span>
+<span>+15 today</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">psychology</span>
+</div>
+<div class="flex items-start justify-between mb-4">
+<div>
+<p class="text-gray-400 text-sm font-medium">Grammar Mastered</p>
+<h3 class="text-3xl font-bold text-white mt-1">12<span class="text-base text-gray-500 font-normal">/20 pts</span></h3>
+</div>
+<div class="relative size-12">
+<svg class="size-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"></path>
+<path class="text-secondary drop-shadow-[0_0_10px_rgba(124,58,237,0.5)]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="60, 100" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-secondary">60%</div>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 w-fit px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-base">trending_up</span>
+<span>+2 today</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-card p-6 rounded-2xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-6xl">timer</span>
+</div>
+<div class="flex items-start justify-between mb-4">
+<div>
+<p class="text-gray-400 text-sm font-medium">Daily Goal</p>
+<h3 class="text-3xl font-bold text-white mt-1">35<span class="text-base text-gray-500 font-normal">/45m</span></h3>
+</div>
+<div class="relative size-12">
+<svg class="size-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="100, 100" stroke-width="3"></path>
+<path class="text-primary drop-shadow-[0_0_10px_rgba(73,19,236,0.5)]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="78, 100" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary">78%</div>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm text-yellow-400 bg-yellow-400/10 w-fit px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined text-base">timelapse</span>
+<span>10m left</span>
+</div>
+</div>
+</div>
+<!-- Main Navigation Modules -->
+<div>
+<h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                            Study Modules
+                        </h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Module 1 -->
+<button class="glass-card p-6 rounded-2xl flex flex-col items-start gap-4 text-left group hover:bg-white/5 h-64 justify-between border-t-4 border-t-blue-500">
+<div class="size-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+<span class="material-symbols-outlined text-3xl">style</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">Vocabulary</h3>
+<p class="text-sm text-gray-400 mt-2 leading-relaxed">Master JLPT N5 words with flashcards.</p>
+</div>
+<div class="w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Start Session</span>
+<span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</button>
+<!-- Module 2 -->
+<button class="glass-card p-6 rounded-2xl flex flex-col items-start gap-4 text-left group hover:bg-white/5 h-64 justify-between border-t-4 border-t-purple-500">
+<div class="size-14 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+<span class="material-symbols-outlined text-3xl">history_edu</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-white group-hover:text-purple-400 transition-colors">Grammar</h3>
+<p class="text-sm text-gray-400 mt-2 leading-relaxed">Particles &amp; sentence structure lessons.</p>
+</div>
+<div class="w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Continue</span>
+<span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</button>
+<!-- Module 3 -->
+<button class="glass-card p-6 rounded-2xl flex flex-col items-start gap-4 text-left group hover:bg-white/5 h-64 justify-between border-t-4 border-t-pink-500">
+<div class="size-14 rounded-2xl bg-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+<span class="material-symbols-outlined text-3xl">smart_toy</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-white group-hover:text-pink-400 transition-colors">AI Tutor</h3>
+<p class="text-sm text-gray-400 mt-2 leading-relaxed">Practice conversation with Sensei AI.</p>
+</div>
+<div class="w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Chat Now</span>
+<span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</button>
+<!-- Module 4 -->
+<button class="glass-card p-6 rounded-2xl flex flex-col items-start gap-4 text-left group hover:bg-white/5 h-64 justify-between border-t-4 border-t-teal-500">
+<div class="size-14 rounded-2xl bg-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+<span class="material-symbols-outlined text-3xl">grid_view</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-white group-hover:text-teal-400 transition-colors">Kana Chart</h3>
+<p class="text-sm text-gray-400 mt-2 leading-relaxed">Hiragana &amp; Katakana reference guide.</p>
+</div>
+<div class="w-full pt-4 border-t border-white/5 flex justify-between items-center">
+<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">View Chart</span>
+<span class="material-symbols-outlined text-white group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</button>
+</div>
+</div>
+<!-- Recent Activity List -->
+<div class="glass-card rounded-2xl p-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-lg font-bold text-white">Recent Activity</h2>
+<button class="text-sm text-primary hover:text-white transition-colors">View All</button>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Item 1 -->
+<div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+<div class="size-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+<span class="material-symbols-outlined text-xl">check_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-white truncate">Completed "Introductions" Lesson</p>
+<p class="text-xs text-gray-500">2 hours ago</p>
+</div>
+<div class="text-right shrink-0">
+<p class="text-sm font-bold text-green-400">+50 XP</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/5">
+<div class="size-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
+<span class="material-symbols-outlined text-xl">quiz</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-white truncate">Scored 90% on Grammar Quiz</p>
+<p class="text-xs text-gray-500">Yesterday</p>
+</div>
+<div class="text-right shrink-0">
+<p class="text-sm font-bold text-green-400">+120 XP</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Review Alert -->
+<div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] md:w-[600px] z-30">
+<div class="glass-card backdrop-blur-xl bg-red-500/10 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-full px-6 py-3 flex items-center justify-between animate-bounce hover:animate-none cursor-pointer group transition-all hover:bg-red-500/20">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
+<span class="material-symbols-outlined text-white text-sm">priority_high</span>
+</div>
+<div>
+<p class="text-white font-bold text-sm">Review Needed</p>
+<p class="text-red-200 text-xs">24 words are ready for SRS review</p>
+</div>
+</div>
+<button class="bg-white text-red-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
+                        Review Now
+                    </button>
+</div>
+</div>
+</main>
+</div>
+</body></html>
