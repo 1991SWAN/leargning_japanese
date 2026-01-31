@@ -13,6 +13,11 @@ interface GrammarProps {
 export default function GrammarLessonView({ lessons }: GrammarProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
+  const [revealedExamples, setRevealedExamples] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setRevealedExamples(new Set());
+  }, [selectedId]);
 
   const categories = useMemo(() => {
     const levels = new Set<string>();
@@ -234,7 +239,13 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                           <motion.div
                             key={idx}
                             whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.08)' }}
-                            className="p-10 rounded-[48px] bg-white/5 border border-white/5 flex flex-col gap-8 transition-all group overflow-hidden relative shadow-2xl"
+                            onClick={() => {
+                              const next = new Set(revealedExamples);
+                              if (next.has(idx)) next.delete(idx);
+                              else next.add(idx);
+                              setRevealedExamples(next);
+                            }}
+                            className={`p-10 rounded-[48px] bg-white/5 border border-white/5 flex flex-col gap-8 transition-all group overflow-hidden relative shadow-2xl cursor-pointer ${revealedExamples.has(idx) ? 'ring-1 ring-primary/30 bg-white/[0.08]' : ''}`}
                           >
                             <div className="flex justify-between items-start relative z-10">
                               <p className="jp-text text-3xl font-medium leading-relaxed text-indigo-50/90 pr-10">
@@ -251,13 +262,13 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                             <div className="h-px w-full bg-white/10 relative z-10" />
 
                             <div className="relative z-10 pt-2 min-h-[40px] flex items-center">
-                              <p className={`text-2xl font-bold transition-all duration-200 ${'blur-md opacity-20 group-hover:blur-none group-hover:opacity-100'} cursor-default text-white`}>
+                              <p className={`text-2xl font-bold transition-all duration-300 ${revealedExamples.has(idx) ? 'blur-none opacity-100' : 'blur-md opacity-20 group-hover:blur-none group-hover:opacity-100'} cursor-default text-white`}>
                                 {ex.ko}
                               </p>
-                              <div className="absolute inset-0 flex items-center text-[11px] font-black uppercase tracking-[0.2em] text-primary/60 group-hover:opacity-0 transition-all duration-200 pointer-events-none">
+                              <div className={`absolute inset-0 flex items-center text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-primary/60 transition-all duration-300 pointer-events-none ${revealedExamples.has(idx) ? 'opacity-0' : 'group-hover:opacity-0'}`}>
                                 <span className="flex items-center gap-2">
                                   <span className="material-symbols-outlined text-sm">visibility</span>
-                                  마우스를 올려 번역 확인
+                                  {revealedExamples.has(idx) ? '' : '탭하여 번역 확인'}
                                 </span>
                               </div>
                             </div>
