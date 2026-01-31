@@ -212,7 +212,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
   const background = useTransform(x, [-150, 0, 150], ["#ef444433", "rgba(255,255,255,0.05)", "#10b98133"]);
 
   return (
-    <div className="flex flex-col items-center max-w-[1200px] mx-auto min-h-[900px] py-10 px-4 w-full relative">
+    <div className="flex flex-col items-center max-w-[1200px] mx-auto min-h-screen py-6 md:py-10 px-4 w-full relative">
       {/* Mobile-only Header (Compact) */}
       <div className="md:hidden flex items-center justify-between w-full max-w-2xl mb-10 px-2 group">
         <div className="flex flex-col">
@@ -327,7 +327,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex flex-col items-center gap-10 w-full"
+            className="flex flex-col items-center gap-6 md:gap-10 w-full"
           >
             {/* Session Progress (Nav arrows removed on mobile here) */}
             <div className="w-full max-w-2xl px-4 flex items-center justify-center">
@@ -347,25 +347,25 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
             </div>
 
             {/* Flashcard Wrapper with Internal Nav Arrows */}
-            <div className="perspective-1000 w-full flex justify-center relative touch-none group/study">
-              {/* Mobile Card-Side Navigation Arrows */}
+            <div className="perspective-1000 w-full flex justify-center relative touch-none group/study items-center">
+              {/* Mobile Card-Side Navigation Arrows - Adjusted for touch safety */}
               <button
                 onClick={(e) => { e.stopPropagation(); handlePrev(); }}
                 disabled={currentIndex === 0}
-                className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-50 size-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
+                className="md:hidden absolute left-1 top-1/2 -translate-y-1/2 z-50 size-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
               >
-                <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                <span className="material-symbols-outlined text-xl">chevron_left</span>
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleNext(); }}
                 disabled={currentIndex === shuffledList.length - 1}
-                className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 z-50 size-12 rounded-full bg-black/20 backdrop-blur-md border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
+                className="md:hidden absolute right-1 top-1/2 -translate-y-1/2 z-50 size-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white disabled:opacity-0 active:scale-90 transition-all shadow-xl"
               >
-                <span className="material-symbols-outlined text-2xl">chevron_right</span>
+                <span className="material-symbols-outlined text-xl">chevron_right</span>
               </button>
 
               <motion.div
-                className={`relative w-full max-w-2xl aspect-[1.6/1] cursor-pointer group`}
+                className={`relative w-full max-w-2xl min-h-[420px] md:min-h-[480px] h-auto cursor-pointer group flex flex-col`}
                 style={{ x }}
                 drag={revealStep === 1 ? "x" : false}
                 dragConstraints={{ left: 0, right: 0 }}
@@ -376,7 +376,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 onClick={revealStep === 0 && !isWritingMode ? advanceStep : undefined}
               >
                 <motion.div
-                  className="w-full h-full relative"
+                  className="w-full h-full relative flex flex-col"
                   initial={false}
                   animate={{ rotateY: revealStep === 1 ? 180 : 0 }}
                   transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
@@ -384,7 +384,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 >
                   {/* Front Side */}
                   <motion.div
-                    className="absolute inset-0 rounded-[40px] glass-panel border border-white/10 flex flex-col p-10 overflow-hidden shadow-2xl"
+                    className="absolute inset-0 rounded-[32px] md:rounded-[40px] glass-panel border border-white/10 flex flex-col p-6 md:p-10 overflow-hidden shadow-2xl"
                     style={{
                       backfaceVisibility: 'hidden',
                       backgroundColor: background,
@@ -435,7 +435,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </motion.span>
                       <motion.h2
                         layout
-                        className={`${studyMode === 'mastery' ? 'text-6xl' : 'text-8xl jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(2.5rem,10vw,4rem)]' : 'text-[clamp(3.5rem,15vw,7rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-tight`}
                       >
                         {studyMode === 'mastery' ? currentItem.meaning : (currentItem.kanji || currentItem.furigana)}
                       </motion.h2>
@@ -480,14 +480,14 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       )}
                     </AnimatePresence>
 
-                    <div className="text-center opacity-20 text-[10px] font-black uppercase tracking-[0.4em] z-10">
+                    <div className="text-center opacity-20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] z-10 mt-auto pb-2">
                       {revealStep === 0 ? "Click to reveal answer" : "Swiping for evaluation"}
                     </div>
                   </motion.div>
 
-                  {/* Back Side */}
+                  {/* Back Side - Using comparative relative for dynamic height if needed, but simplified for clarity */}
                   <motion.div
-                    className="absolute inset-0 rounded-[40px] glass-panel bg-white/10 border border-white/10 flex flex-col p-10 shadow-2xl overflow-hidden"
+                    className={`${revealStep === 1 ? 'relative' : 'absolute inset-0'} rounded-[32px] md:rounded-[40px] glass-panel bg-white/10 border border-white/10 flex flex-col p-6 md:p-10 shadow-2xl overflow-hidden min-h-full`}
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
@@ -508,7 +508,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className={`${studyMode === 'mastery' ? 'text-8xl' : 'text-6xl'} font-black mb-4 jp-text text-white leading-tight`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,16vw,7rem)]' : 'text-[clamp(2.5rem,10vw,5rem)]'} font-black mb-4 jp-text text-white leading-tight`}
                       >
                         {studyMode === 'mastery' ? (currentItem.kanji || currentItem.furigana) : currentItem.meaning}
                       </motion.h3>
@@ -566,7 +566,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
             </div>
 
             {/* SRS Controls */}
-            <div className="flex flex-col items-center gap-8 w-full max-w-xl">
+            <div className="flex flex-col items-center gap-6 md:gap-8 w-full max-w-xl">
               <div className="grid grid-cols-4 gap-4 w-full">
                 {(['다시', '어려움', '보통', '쉬움'] as const).map(grade => (
                   <button
@@ -574,7 +574,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                     disabled={revealStep < 1}
                     onMouseEnter={() => setHoverGrade(grade)}
                     onMouseLeave={() => setHoverGrade(null)}
-                    className={`relative overflow-hidden group py-4 rounded-2xl border transition-all duration-300 disabled:opacity-10 ${grade === '다시' ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white hover:shadow-[0_0_30px_rgba(239,68,68,0.3)]' :
+                    className={`relative overflow-hidden group py-4 rounded-2xl border transition-all duration-300 disabled:opacity-20 ${grade === '다시' ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white hover:shadow-[0_0_30px_rgba(239,68,68,0.3)]' :
                       grade === '어려움' ? 'border-orange-500/20 bg-orange-500/5 hover:bg-orange-500 hover:text-white hover:shadow-[0_0_30px_rgba(249,115,22,0.3)]' :
                         grade === '보통' ? 'border-blue-500/20 bg-blue-500/5 hover:bg-blue-500 hover:text-white hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]' :
                           'border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-105'
