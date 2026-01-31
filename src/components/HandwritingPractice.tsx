@@ -224,12 +224,6 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">{currentItem.reading || 'Characters'}</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors group border border-white/5"
-            >
-              <span className="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors text-xl">close</span>
-            </button>
           </div>
 
           <div className="p-10 flex flex-col items-center gap-10">
