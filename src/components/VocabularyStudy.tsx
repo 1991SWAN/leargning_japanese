@@ -435,7 +435,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </motion.span>
                       <motion.h2
                         layout
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(2.8rem,12vw,5rem)]' : 'text-[clamp(2rem,10vw,4.5rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,12vw,6rem)]' : 'text-[clamp(3rem,12vw,6rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
                       >
                         {studyMode === 'mastery' ? (
                           currentItem.meaning
@@ -514,7 +514,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(2rem,10vw,5rem)]' : 'text-[clamp(2.8rem,12vw,5rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,12vw,6rem)]' : 'text-[clamp(3rem,12vw,6rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
                       >
                         {studyMode === 'mastery' ? (
                           <FuriganaText
