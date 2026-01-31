@@ -133,7 +133,7 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
   const draw = (e: any) => {
     if (!isDrawing) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const { x, y } = getCoordinates(e);
 
     setPaths(prev => {
@@ -228,7 +228,8 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={endDrawing}
-                    className="absolute inset-0 z-20 w-full h-full"
+                    className="absolute inset-0 z-20 w-full h-full touch-none"
+                    style={{ touchAction: 'none' }}
                   />
 
                   {showGuide && (
@@ -284,60 +285,63 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
             </div>
 
             {/* Controls Bar */}
-            <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-[32px] p-2 flex flex-col md:flex-row items-center gap-2">
-              <div className="flex items-center gap-3 px-6 h-14 w-full md:w-auto md:border-r border-white/10">
-                <span className="material-symbols-outlined text-primary text-sm shrink-0">visibility</span>
+            <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-[32px] p-3 flex flex-col items-center gap-4">
+              {/* Top Row: Guide Opacity */}
+              <div className="flex items-center gap-4 px-6 h-12 w-full max-w-md bg-white/5 rounded-2xl border border-white/5">
+                <span className="material-symbols-outlined text-primary text-xl shrink-0">visibility</span>
                 <input
                   type="range" min="0" max="0.8" step="0.05"
                   value={guideOpacity}
                   onChange={(e) => setGuideOpacity(parseFloat(e.target.value))}
-                  className="flex-1 md:w-24 accent-primary"
+                  className="flex-1 accent-primary h-1.5 rounded-full"
                 />
               </div>
 
-              <div className="flex items-center justify-between w-full md:w-auto md:flex-1 px-4 md:px-2 gap-2 pb-2 md:pb-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => speakJapanese(sanitize(currentItem.text))}
-                    className="size-11 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all"
-                    title="Listen"
-                  >
-                    <span className="material-symbols-outlined">volume_up</span>
-                  </button>
-                  <button
-                    onClick={() => setIsRandom(!isRandom)}
-                    className={`size-11 rounded-2xl flex items-center justify-center transition-all ${isRandom ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-gray-400'}`}
-                    title="Randomize"
-                  >
-                    <span className="material-symbols-outlined text-xl">casino</span>
-                  </button>
-                </div>
+              {/* Bottom Row: Actions */}
+              <div className="flex items-center justify-center gap-2 md:gap-3 w-full">
+                <button
+                  onClick={() => speakJapanese(sanitize(currentItem.text))}
+                  className="size-12 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all border border-white/5"
+                  title="Listen"
+                >
+                  <span className="material-symbols-outlined text-[22px]">volume_up</span>
+                </button>
 
-                <div className="flex items-center gap-2 h-11 px-2 bg-white/5 rounded-2xl">
-                  <button
-                    onClick={undoPath}
-                    disabled={paths.length === 0}
-                    className="size-10 rounded-xl hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all"
-                    title="Undo"
-                  >
-                    <span className="material-symbols-outlined">undo</span>
-                  </button>
-                  <div className="w-px h-4 bg-white/10" />
-                  <button
-                    onClick={clearCanvas}
-                    className="size-10 rounded-xl hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all"
-                    title="Clear"
-                  >
-                    <span className="material-symbols-outlined text-[22px]">delete_sweep</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsRandom(!isRandom)}
+                  className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${isRandom ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400'}`}
+                  title="Randomize"
+                >
+                  <span className="material-symbols-outlined text-xl">casino</span>
+                </button>
+
+                <div className="h-8 w-px bg-white/10 mx-1" />
+
+                <button
+                  onClick={undoPath}
+                  disabled={paths.length === 0}
+                  className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all border border-white/5"
+                  title="Undo"
+                >
+                  <span className="material-symbols-outlined text-[22px]">undo</span>
+                </button>
+
+                <button
+                  onClick={clearCanvas}
+                  className="size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all border border-white/5"
+                  title="Clear"
+                >
+                  <span className="material-symbols-outlined text-[24px]">delete_sweep</span>
+                </button>
+
+                <div className="h-8 w-px bg-white/10 mx-1" />
 
                 <button
                   onClick={() => setShowGuide(!showGuide)}
-                  className={`size-11 rounded-2xl flex items-center justify-center transition-all ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-white/5 text-gray-500'}`}
+                  className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}
                   title="Toggle Guide"
                 >
-                  <span className="material-symbols-outlined">{showGuide ? 'visibility' : 'visibility_off'}</span>
+                  <span className="material-symbols-outlined text-[22px]">{showGuide ? 'visibility' : 'visibility_off'}</span>
                 </button>
               </div>
             </div>
