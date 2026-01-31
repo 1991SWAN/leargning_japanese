@@ -429,13 +429,13 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.span
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-[10px] font-black opacity-30 uppercase tracking-[0.4em] mb-4"
+                        className="text-[9px] md:text-[10px] font-black opacity-30 uppercase tracking-[0.2em] md:tracking-[0.4em] mb-4 whitespace-nowrap"
                       >
                         {studyMode === 'mastery' ? 'How do you write & read?' : 'What does this mean?'}
                       </motion.span>
                       <motion.h2
                         layout
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,12vw,6rem)]' : 'text-[clamp(3rem,12vw,6rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(4rem,15vw,8rem)]' : 'text-[clamp(4rem,15vw,8rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
                       >
                         {studyMode === 'mastery' ? (
                           currentItem.meaning
@@ -514,7 +514,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(3rem,12vw,6rem)]' : 'text-[clamp(3rem,12vw,6rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
+                        className={`${studyMode === 'mastery' ? 'text-[clamp(4rem,15vw,8rem)]' : 'text-[clamp(4rem,15vw,8rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
                       >
                         {studyMode === 'mastery' ? (
                           <FuriganaText
