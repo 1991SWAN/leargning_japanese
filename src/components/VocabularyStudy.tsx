@@ -365,7 +365,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
               </button>
 
               <motion.div
-                className={`relative w-full max-w-2xl min-h-[420px] md:min-h-[480px] h-auto cursor-pointer group flex flex-col`}
+                className={`relative w-full max-w-2xl h-auto cursor-pointer group flex flex-col`}
                 style={{ x }}
                 drag={revealStep === 1 ? "x" : false}
                 dragConstraints={{ left: 0, right: 0 }}
@@ -376,7 +376,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 onClick={revealStep === 0 && !isWritingMode ? advanceStep : undefined}
               >
                 <motion.div
-                  className="w-full h-full relative flex flex-col"
+                  className="w-full relative preserve-3d flex flex-col"
                   initial={false}
                   animate={{ rotateY: revealStep === 1 ? 180 : 0 }}
                   transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
@@ -384,7 +384,7 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                 >
                   {/* Front Side */}
                   <motion.div
-                    className="absolute inset-0 rounded-[32px] md:rounded-[40px] glass-panel border border-white/10 flex flex-col p-6 md:p-10 overflow-hidden shadow-2xl"
+                    className={`${revealStep === 0 ? 'relative' : 'absolute inset-0'} rounded-[32px] md:rounded-[40px] glass-panel border border-white/10 flex flex-col p-6 md:p-10 overflow-hidden shadow-2xl min-h-[400px] md:min-h-[460px] w-full`}
                     style={{
                       backfaceVisibility: 'hidden',
                       backgroundColor: background,
@@ -485,9 +485,9 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                     </div>
                   </motion.div>
 
-                  {/* Back Side - Using comparative relative for dynamic height if needed, but simplified for clarity */}
+                  {/* Back Side */}
                   <motion.div
-                    className={`${revealStep === 1 ? 'relative' : 'absolute inset-0'} rounded-[32px] md:rounded-[40px] glass-panel bg-white/10 border border-white/10 flex flex-col p-6 md:p-10 shadow-2xl overflow-hidden min-h-full`}
+                    className={`${revealStep === 1 ? 'relative' : 'absolute inset-0'} rounded-[32px] md:rounded-[40px] glass-panel bg-white/10 border border-white/10 flex flex-col p-6 md:p-10 shadow-2xl overflow-hidden min-h-[400px] md:min-h-[460px] w-full`}
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
