@@ -28,9 +28,13 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
       if (l.tags) l.tags.forEach(tag => tags.add(tag));
     });
 
-    // Sort levels (N1, N2...) and tags, then combine
-    const sortedLevels = Array.from(levels).sort();
-    const sortedTags = Array.from(tags).filter(t => !t.startsWith('JLPT')).sort();
+    // Sort levels in descending order (N5, N4, N3, N2, N1)
+    const sortedLevels = Array.from(levels).sort((a, b) => b.localeCompare(a));
+
+    // Sort other tags alphabetically, ensuring stability
+    const sortedTags = Array.from(tags)
+      .filter(t => !t.startsWith('JLPT'))
+      .sort((a, b) => a.localeCompare(b));
 
     return ['전체', ...sortedLevels, ...sortedTags];
   }, [lessons]);
@@ -235,9 +239,9 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                         <div className="flex-1 h-[1px] bg-white/10" />
                       </h3>
                       <div className="grid gap-8">
-                        {current.examples && (current.examples as any[]).map((ex, idx) => (
+                        {current.grammar_examples && (current.grammar_examples as any[]).map((ex, idx) => (
                           <motion.div
-                            key={idx}
+                            key={ex.id || idx}
                             whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.08)' }}
                             onClick={() => {
                               const next = new Set(revealedExamples);
@@ -249,13 +253,13 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
                           >
                             <div className="flex justify-between items-start relative z-10">
                               <p className="jp-text text-2xl md:text-3xl font-medium leading-relaxed text-indigo-50/90 pr-10">
-                                <FuriganaText text={ex.jp} />
+                                <FuriganaText text={ex.japanese} />
                               </p>
                               <button
                                 className="p-4 md:p-6 bg-white/5 text-white rounded-[20px] md:rounded-[24px] opacity-100 md:opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white scale-90 shadow-xl"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  speakJapanese(sanitizeForTTS(ex.jp));
+                                  speakJapanese(sanitizeForTTS(ex.japanese));
                                 }}
                               >
                                 <span className="material-symbols-outlined text-2xl md:text-3xl">volume_up</span>
@@ -266,7 +270,7 @@ export default function GrammarLessonView({ lessons }: GrammarProps) {
 
                             <div className="relative z-10 pt-2 min-h-[40px] flex items-center">
                               <p className={`text-2xl font-bold transition-all duration-300 ${revealedExamples.has(idx) ? 'blur-none opacity-100' : 'blur-md opacity-20 group-hover:blur-none group-hover:opacity-100'} cursor-default text-white`}>
-                                {ex.ko}
+                                {ex.korean}
                               </p>
                               <div className={`absolute inset-0 flex items-center text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-primary/60 transition-all duration-300 pointer-events-none ${revealedExamples.has(idx) ? 'opacity-0' : 'group-hover:opacity-0'}`}>
                                 <span className="flex items-center gap-2">

@@ -94,7 +94,7 @@ export const grammarService = {
     async getLessons() {
         const { data, error } = await supabase
             .from('grammar')
-            .select('*')
+            .select('*, grammar_examples(*)')
             .order('jlpt_level', { ascending: false });
 
         if (error) throw error;

@@ -23,8 +23,11 @@ export interface Grammar {
     pattern: string;
     meaning: string;
     connection: string;
-    examples: GrammarExample[];
+    examples?: GrammarExample[]; // Deprecated, kept for legacy compatibility
+    grammar_examples?: GrammarExamplesTable[]; // New Relation
     jlpt_level: number;
+    conversation_level?: number; // 1(Low) ~ 5(High)
+    is_core?: boolean;
     tags?: string[];
 }
 
@@ -32,6 +35,15 @@ export interface GrammarExample {
     jp: string;
     ko: string;
     reading?: string;
+}
+
+export interface GrammarExamplesTable {
+    id: string;
+    grammar_id: string;
+    japanese: string;
+    korean: string;
+    english?: string;
+    created_at?: string;
 }
 
 // AI 채팅 메시지 타입
