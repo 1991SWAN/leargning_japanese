@@ -19,6 +19,26 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
   const [revealStep, setRevealStep] = useState(0); // 0: Question, 1: Answer
   const [studyMode, setStudyMode] = useState<'mastery' | 'recognition'>('mastery');
   const [isWritingMode, setIsWritingMode] = useState(false);
+
+  // Helper to calculate dynamic font size based on text length to keep it single-line
+  const getDynamicFontSize = (text: string, isJapanese: boolean = false) => {
+    const len = text.length;
+    let baseMin = 4;
+    let baseMax = 8;
+    let vwBase = 15;
+
+    if (len > 10) {
+      baseMin = 2;
+      baseMax = 4;
+      vwBase = 10;
+    } else if (len > 6) {
+      baseMin = 3;
+      baseMax = 6;
+      vwBase = 12;
+    }
+
+    return `clamp(${baseMin}rem, ${vwBase}vw, ${baseMax}rem)`;
+  };
   const [isShuffle, setIsShuffle] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hoverGrade, setHoverGrade] = useState<string | null>(null);
@@ -435,7 +455,13 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       </motion.span>
                       <motion.h2
                         layout
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(4rem,15vw,8rem)]' : 'text-[clamp(4rem,15vw,8rem)] jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto`}
+                        className={`${studyMode === 'mastery' ? '' : 'jp-text'} font-black bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent mb-2 leading-relaxed h-auto whitespace-nowrap text-center w-full`}
+                        style={{
+                          fontSize: getDynamicFontSize(
+                            studyMode === 'mastery' ? currentItem.meaning : (currentItem.kanji || currentItem.furigana),
+                            studyMode === 'recognition'
+                          )
+                        }}
                       >
                         {studyMode === 'mastery' ? (
                           currentItem.meaning
@@ -514,7 +540,13 @@ export default function VocabularyStudy({ vocabList, onSelectWriting }: VocabPro
                       <motion.h3
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className={`${studyMode === 'mastery' ? 'text-[clamp(4rem,15vw,8rem)]' : 'text-[clamp(4rem,15vw,8rem)]'} font-black mb-4 jp-text text-white leading-relaxed`}
+                        className={`font-black mb-4 jp-text text-white leading-relaxed whitespace-nowrap text-center w-full`}
+                        style={{
+                          fontSize: getDynamicFontSize(
+                            studyMode === 'mastery' ? (currentItem.kanji || currentItem.furigana) : currentItem.meaning,
+                            studyMode === 'mastery'
+                          )
+                        }}
                       >
                         {studyMode === 'mastery' ? (
                           <FuriganaText
