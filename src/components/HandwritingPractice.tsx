@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { speakJapanese } from '@/lib/tts';
 
 interface HandwritingItem {
@@ -16,6 +16,7 @@ interface HandwritingPracticeProps {
 }
 
 export default function HandwritingPractice({ items, initialText, onClose }: HandwritingPracticeProps) {
+  const dragControls = useDragControls();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showGuide, setShowGuide] = useState(true);
   const [isRandom, setIsRandom] = useState(false);
@@ -188,14 +189,32 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          initial={{ scale: 0.9, opacity: 0, y: 100 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          className="glass-panel w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl border-white/10 relative"
+          exit={{ scale: 0.9, opacity: 0, y: 100 }}
+          drag="y"
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.5 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 150 || info.velocity.y > 500) {
+              onClose();
+            }
+          }}
+          className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative"
           onClick={e => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="p-8 border-b border-white/5 flex items-center justify-between">
+          {/* Drag Handle for Mobile */}
+          <div
+            onPointerDown={e => dragControls.start(e)}
+            className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-white/20 z-50 cursor-grab active:cursor-grabbing md:hidden"
+          />
+          {/* Header - Also draggable */}
+          <div
+            onPointerDown={e => dragControls.start(e)}
+            className="p-8 border-b border-white/5 flex items-center justify-between cursor-grab active:cursor-grabbing"
+          >
             <div className="flex items-center gap-4">
               <div className="size-12 rounded-2xl premium-gradient flex items-center justify-center shadow-lg shadow-primary/20">
                 <span className="material-symbols-outlined text-white">edit_square</span>
@@ -207,9 +226,9 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
             </div>
             <button
               onClick={onClose}
-              className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors group"
+              className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors group border border-white/5"
             >
-              <span className="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors">close</span>
+              <span className="material-symbols-outlined text-gray-400 group-hover:text-white transition-colors text-xl">close</span>
             </button>
           </div>
 
