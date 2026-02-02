@@ -211,11 +211,14 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
           className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative flex flex-col"
           onClick={e => e.stopPropagation()}
         >
-          {/* Drag Handle */}
+          {/* Drag Handle (Expanded Touch Area) */}
           <div
             onPointerDown={e => dragControls.start(e)}
-            className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full bg-white/10 z-50 cursor-grab active:cursor-grabbing hover:bg-white/20 transition-colors"
-          />
+            className="absolute top-0 left-0 w-full h-12 z-50 flex items-start justify-center pt-3 cursor-grab active:cursor-grabbing group"
+          >
+            {/* Visual Handle */}
+            <div className="w-12 h-1 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors" />
+          </div>
 
           <div className="pt-12 pb-4 px-4 md:px-8 flex flex-col items-center gap-4 md:gap-6 flex-1">
             {/* Main Area: Canvas Container */}
