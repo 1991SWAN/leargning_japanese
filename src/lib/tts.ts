@@ -117,3 +117,31 @@ const fallbackToWebSpeech = (text: string) => {
     utterance.rate = 0.85;
     window.speechSynthesis.speak(utterance);
 };
+
+/**
+ * 텍스트 음성 데이터를 미리 다운로드하여 캐시에 저장합니다.
+ * 실제 재생은 하지 않으며 백그라운드에서 실행됩니다.
+ */
+export const preloadJapanese = (text: string) => {
+    if (typeof window === 'undefined') return;
+
+    // 이미 캐시되어 있거나 재생 중이라면 생략
+    if (audioCache.has(text)) return;
+
+    try {
+        const audio = new Audio(`/api/tts?text=${encodeURIComponent(text)}`);
+        // 브라우저가 데이터를 미리 받도록 preload 설정
+        audio.preload = 'auto';
+
+        // 캐시에 저장 (짧은 텍스트 위주)
+        if (text.length < 10) {
+            audioCache.set(text, audio);
+        }
+
+        // 백그라운드에서 로드 시작
+        audio.load();
+    } catch (error) {
+        // 프리로딩 실패는 사용자에게 알리지 않고 조용히 처리
+        console.warn("TTS Preloading failed:", error);
+    }
+};

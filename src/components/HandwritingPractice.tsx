@@ -205,29 +205,13 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
           className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative"
           onClick={e => e.stopPropagation()}
         >
-          {/* Drag Handle for Mobile */}
+          {/* Drag Handle for All (Now more integrated without header) */}
           <div
             onPointerDown={e => dragControls.start(e)}
-            className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-white/20 z-50 cursor-grab active:cursor-grabbing md:hidden"
+            className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-white/10 z-50 cursor-grab active:cursor-grabbing hover:bg-white/20 transition-colors"
           />
-          {/* Header - Also draggable */}
-          <div
-            onPointerDown={e => dragControls.start(e)}
-            className="p-8 border-b border-white/5 flex items-center justify-between cursor-grab active:cursor-grabbing"
-          >
-            <div className="flex items-center gap-4">
-              <div className="size-12 rounded-2xl premium-gradient flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined text-white">edit_square</span>
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-white leading-tight">Practice Writing</h2>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">{currentItem.reading || 'Characters'}</p>
-              </div>
-            </div>
-          </div>
 
-          <div className="p-10 flex flex-col items-center gap-10">
-            {/* Main Area with Navigation */}
+          <div className="pt-16 pb-10 px-8 flex flex-col items-center gap-10">
             {/* Main Area with Navigation */}
             <div className="w-full flex items-center justify-between gap-4 md:gap-6">
               <button
@@ -276,29 +260,31 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
                     <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10" />
                     <div className="absolute top-0 left-1/2 w-[1px] h-full bg-white/10" />
                   </div>
+
+                  {/* Romaji Floating Badge - Top Center (Precisely Centered) */}
+                  <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md pointer-events-none transition-all flex items-center justify-center">
+                    <span className="text-2xl font-black text-indigo-300/90 uppercase tracking-[0.2em] leading-normal mb-[-2px] mr-[-0.2em]">
+                      {currentItem.reading}
+                    </span>
+                  </div>
                 </motion.div>
 
-                {/* Progress & Nav inside canvas area for mobile */}
-                <div className="flex items-center justify-between mt-6 px-1 lg:absolute lg:-bottom-12 lg:left-0 lg:w-full lg:px-0">
-                  <div className="md:hidden flex gap-2">
-                    <button
-                      onClick={() => navigateItems('prev')}
-                      disabled={!isRandom && currentIndex === 0}
-                      className="size-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center disabled:opacity-0"
-                    >
-                      <span className="material-symbols-outlined text-white text-xl">chevron_left</span>
-                    </button>
-                    <button
-                      onClick={() => navigateItems('next')}
-                      disabled={!isRandom && currentIndex === items.length - 1}
-                      className="size-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center disabled:opacity-0"
-                    >
-                      <span className="material-symbols-outlined text-white text-xl">chevron_right</span>
-                    </button>
-                  </div>
-                  <div className="px-5 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/20 text-[10px] font-black text-indigo-300 uppercase tracking-widest">
-                    {currentIndex + 1} / {items.length}
-                  </div>
+                {/* Mobile Navigation Arrows (only displayed when screen is narrow) */}
+                <div className="md:hidden flex items-center justify-between mt-4 w-full px-2">
+                  <button
+                    onClick={() => navigateItems('prev')}
+                    disabled={!isRandom && currentIndex === 0}
+                    className="size-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center disabled:opacity-20"
+                  >
+                    <span className="material-symbols-outlined text-white text-2xl">chevron_left</span>
+                  </button>
+                  <button
+                    onClick={() => navigateItems('next')}
+                    disabled={!isRandom && currentIndex === items.length - 1}
+                    className="size-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center disabled:opacity-20"
+                  >
+                    <span className="material-symbols-outlined text-white text-2xl">chevron_right</span>
+                  </button>
                 </div>
               </div>
 
@@ -311,65 +297,73 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
               </button>
             </div>
 
-            {/* Controls Bar */}
-            <div className="w-full max-w-xl bg-white/5 border border-white/10 rounded-[32px] p-3 flex flex-col items-center gap-4">
-              {/* Top Row: Guide Opacity */}
-              <div className="flex items-center gap-4 px-6 h-12 w-full max-w-md bg-white/5 rounded-2xl border border-white/5">
-                <span className="material-symbols-outlined text-primary text-xl shrink-0">visibility</span>
-                <input
-                  type="range" min="0" max="0.8" step="0.05"
-                  value={guideOpacity}
-                  onChange={(e) => setGuideOpacity(parseFloat(e.target.value))}
-                  className="flex-1 accent-primary h-1.5 rounded-full"
-                />
+            {/* Controls Bar Container */}
+            <div className="w-full max-w-xl flex flex-col items-center gap-4">
+              {/* Progress Indicator - Now independently positioned */}
+              <div className="px-5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                {currentIndex + 1} / {items.length}
               </div>
 
-              {/* Bottom Row: Actions */}
-              <div className="flex items-center justify-center gap-2 md:gap-3 w-full">
-                <button
-                  onClick={() => speakJapanese(sanitize(currentItem.text))}
-                  className="size-12 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all border border-white/5"
-                  title="Listen"
-                >
-                  <span className="material-symbols-outlined text-[22px]">volume_up</span>
-                </button>
+              {/* Main Controls Panel */}
+              <div className="w-full bg-white/5 border border-white/10 rounded-[40px] p-5 flex flex-col items-center gap-6 shadow-xl">
+                {/* Top: Guide Opacity Slider with integrated icon */}
+                <div className="flex items-center gap-4 px-6 h-10 w-full max-w-sm bg-black/20 rounded-full border border-white/5">
+                  <span className="material-symbols-outlined text-primary text-lg shrink-0">visibility</span>
+                  <input
+                    type="range" min="0" max="0.8" step="0.05"
+                    value={guideOpacity}
+                    onChange={(e) => setGuideOpacity(parseFloat(e.target.value))}
+                    className="flex-1 accent-primary h-1 rounded-full cursor-pointer"
+                  />
+                </div>
 
-                <button
-                  onClick={() => setIsRandom(!isRandom)}
-                  className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${isRandom ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400'}`}
-                  title="Randomize"
-                >
-                  <span className="material-symbols-outlined text-xl">casino</span>
-                </button>
+                {/* Bottom: Action Buttons with improved spacing */}
+                <div className="flex items-center justify-center gap-2 md:gap-4 w-full">
+                  <button
+                    onClick={() => speakJapanese(sanitize(currentItem.text))}
+                    className="size-12 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all border border-white/5"
+                    title="Listen"
+                  >
+                    <span className="material-symbols-outlined text-[22px]">volume_up</span>
+                  </button>
 
-                <div className="h-8 w-px bg-white/10 mx-1" />
+                  <button
+                    onClick={() => setIsRandom(!isRandom)}
+                    className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${isRandom ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400'}`}
+                    title="Randomize"
+                  >
+                    <span className="material-symbols-outlined text-xl">casino</span>
+                  </button>
 
-                <button
-                  onClick={undoPath}
-                  disabled={paths.length === 0}
-                  className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all border border-white/5"
-                  title="Undo"
-                >
-                  <span className="material-symbols-outlined text-[22px]">undo</span>
-                </button>
+                  <div className="h-8 w-px bg-white/10 mx-1" />
 
-                <button
-                  onClick={clearCanvas}
-                  className="size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all border border-white/5"
-                  title="Clear"
-                >
-                  <span className="material-symbols-outlined text-[24px]">delete_sweep</span>
-                </button>
+                  <button
+                    onClick={undoPath}
+                    disabled={paths.length === 0}
+                    className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all border border-white/5"
+                    title="Undo"
+                  >
+                    <span className="material-symbols-outlined text-[22px]">undo</span>
+                  </button>
 
-                <div className="h-8 w-px bg-white/10 mx-1" />
+                  <button
+                    onClick={clearCanvas}
+                    className="size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all border border-white/5"
+                    title="Clear"
+                  >
+                    <span className="material-symbols-outlined text-[24px]">delete_sweep</span>
+                  </button>
 
-                <button
-                  onClick={() => setShowGuide(!showGuide)}
-                  className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}
-                  title="Toggle Guide"
-                >
-                  <span className="material-symbols-outlined text-[22px]">{showGuide ? 'visibility' : 'visibility_off'}</span>
-                </button>
+                  <div className="h-8 w-px bg-white/10 mx-1" />
+
+                  <button
+                    onClick={() => setShowGuide(!showGuide)}
+                    className={`size-12 rounded-2xl flex items-center justify-center transition-all border ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}
+                    title="Toggle Guide"
+                  >
+                    <span className="material-symbols-outlined text-[22px]">{showGuide ? 'visibility' : 'visibility_off'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
