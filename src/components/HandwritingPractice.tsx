@@ -26,9 +26,9 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
   // Swipe Animation State
   const x = useMotionValue(0);
-  const opacity = useTransform(x, [-200, 0, 200], [0.4, 1, 0.4]);
-  const scale = useTransform(x, [-200, 0, 200], [0.92, 1, 0.92]);
-  const rotateY = useTransform(x, [-200, 0, 200], [-12, 0, 12]);
+  const opacity = useTransform(x, [-200, 0, 200], [0, 1, 0]);
+  const scale = useTransform(x, [-200, 0, 200], [0.95, 1, 0.95]);
+  const rotateY = useTransform(x, [-200, 0, 200], [-15, 0, 15]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,8 +57,6 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, isRandom, onClose]);
 
-  const currentItem = items[currentIndex] || items[0];
-
   // Handle Resize and DPI
   useEffect(() => {
     if (!containerRef.current) return;
@@ -71,14 +69,17 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
       const dpr = window.devicePixelRatio || 1;
       const rect = container.getBoundingClientRect();
 
+      // Set display size
       setCanvasSize({ width: rect.width, height: rect.height });
 
+      // Set internal resolution
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
 
+      // Sync context
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Scale the context
+        ctx.scale(dpr, dpr);
         redrawCanvas();
       }
     };
@@ -101,15 +102,18 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
+
+    // Reset and apply DPI scale
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
+    // Line Styles (Must be set after context reset)
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(5, canvasSize.width / 40);
-    ctx.strokeStyle = '#818cf8'; // Indigo 400
+    ctx.strokeStyle = '#6366f1';
     ctx.shadowBlur = 4;
-    ctx.shadowColor = 'rgba(129, 140, 248, 0.4)';
+    ctx.shadowColor = 'rgba(99, 102, 241, 0.4)';
 
     paths.forEach(path => {
       if (path.length === 0) return;
@@ -137,7 +141,8 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
 
   const startDrawing = (e: any) => {
     const { x, y } = getCoordinates(e);
-    if (y > 0.94) return; // Very thin edge for swipe
+    // Boundary check for swipe zone
+    if (y > 0.88) return;
 
     setIsDrawing(true);
     setPaths(prev => [...prev, [{ x, y }]]);
@@ -173,10 +178,12 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
       }
     }
     clearCanvas();
-    x.set(0);
+    x.set(0); // Reset swipe position
   };
 
   if (!items || items.length === 0) return null;
+
+  const currentItem = items[currentIndex] || items[0];
 
   return (
     <AnimatePresence>
@@ -184,132 +191,161 @@ export default function HandwritingPractice({ items, initialText, onClose }: Han
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 bg-black/80 backdrop-blur-md"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 50 }}
+          initial={{ scale: 0.9, opacity: 0, y: 100 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 50 }}
-          className="w-full max-w-2xl h-full md:h-[90vh] md:max-h-[850px] bg-[#0c0c0e] md:rounded-[48px] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] border-white/5 relative flex flex-col"
+          exit={{ scale: 0.9, opacity: 0, y: 100 }}
+          drag="y"
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.5 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 150 || info.velocity.y > 500) {
+              onClose();
+            }
+          }}
+          className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative flex flex-col"
           onClick={e => e.stopPropagation()}
         >
-          {/* Top Info Overlay */}
-          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center pointer-events-none">
-            <span className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.5em] mb-1 opacity-50">Identity</span>
-            <div className="px-5 py-2 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-              <span className="text-3xl font-black text-white/90 uppercase tracking-[0.1em]">
-                {currentItem.reading}
-              </span>
+          {/* Drag Handle */}
+          <div
+            onPointerDown={e => dragControls.start(e)}
+            className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full bg-white/10 z-50 cursor-grab active:cursor-grabbing hover:bg-white/20 transition-colors"
+          />
+
+          <div className="pt-12 pb-4 px-4 md:px-8 flex flex-col items-center gap-4 md:gap-6 flex-1">
+            {/* Main Area: Canvas Container */}
+            <div className="w-full flex items-center justify-center flex-1 max-h-[50vh] md:max-h-[60vh]">
+              <div className="flex-1 max-w-[500px] aspect-square relative group/canvas">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentItem.text}
+                    style={{ x, opacity, scale, rotateY, perspective: 1000 }}
+                    ref={containerRef}
+                    className="relative w-full h-full bg-black/40 rounded-[32px] md:rounded-[40px] border border-white/10 shadow-inner overflow-hidden flex items-center justify-center cursor-crosshair touch-none"
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={endDrawing}
+                      onMouseLeave={endDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={endDrawing}
+                      className="absolute inset-0 z-20 w-full h-full"
+                    />
+
+                    {showGuide && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300 select-none pb-4"
+                        style={{ opacity: 1.0 }}
+                      >
+                        <span className="text-[min(45vw,260px)] font-kanji text-white/50 leading-none">
+                          {sanitize(currentItem.text)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Grit Grid */}
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10%' }}></div>
+                    <div className="absolute inset-0 border-[0.5px] border-white/5 pointer-events-none opacity-20">
+                      <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10" />
+                      <div className="absolute top-0 left-1/2 w-[1px] h-full bg-white/10" />
+                    </div>
+
+                    {/* Romaji Floating Badge */}
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md pointer-events-none transition-all flex items-center justify-center">
+                      <span className="text-2xl font-black text-indigo-300/90 uppercase tracking-[0.2em] leading-normal mb-[-2px] mr-[-0.2em]">
+                        {currentItem.reading}
+                      </span>
+                    </div>
+
+                    {/* Swipe Zone (Bottom) */}
+                    <div
+                      className="absolute bottom-0 left-0 w-full h-14 z-40 flex items-center justify-center cursor-ew-resize overflow-hidden"
+                      style={{ background: 'linear-gradient(to top, rgba(99, 102, 241, 0.2), transparent)' }}
+                    >
+                      <motion.div
+                        onPan={(_, info) => {
+                          x.set(info.offset.x);
+                        }}
+                        onPanEnd={(_, info) => {
+                          if (info.offset.x > 100) navigateItems('prev');
+                          else if (info.offset.x < -100) navigateItems('next');
+                          else {
+                            animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
+                          }
+                        }}
+                        className="w-full h-full flex items-center justify-center group"
+                      >
+                        <div className="flex items-center gap-2 opacity-30 group-hover:opacity-60 transition-opacity">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                          <span className="text-[10px] text-white font-black uppercase tracking-[0.5em] pl-2">Realtime Swipe</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
-          </div>
 
-          {/* Close Button (Minimal) */}
-          <button
-            onClick={onClose}
-            className="absolute top-8 right-8 z-50 size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/10"
-          >
-            <span className="material-symbols-outlined text-white/40 text-xl">close</span>
-          </button>
-
-          {/* Main Immersive Canvas Area */}
-          <div className="flex-1 relative overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentItem.text}
-                style={{ x, opacity, scale, rotateY, perspective: 1200 }}
-                ref={containerRef}
-                className="absolute inset-0 flex items-center justify-center touch-none cursor-crosshair"
-              >
-                <canvas
-                  ref={canvasRef}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={endDrawing}
-                  onMouseLeave={endDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={endDrawing}
-                  className="absolute inset-0 z-20 w-full h-full"
-                />
-
-                {showGuide && (
-                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none select-none">
-                    <span className="text-[min(65vw,400px)] font-kanji text-white/[0.05] leading-none transition-all duration-500">
-                      {sanitize(currentItem.text)}
-                    </span>
+            {/* Bottom Controls */}
+            <div className="w-full max-w-xl flex flex-col items-center gap-4 mt-auto">
+              <div className="w-full bg-white/5 border border-white/10 rounded-[32px] md:rounded-[40px] p-4 md:p-5 flex flex-col items-center gap-4 shadow-xl">
+                <div className="flex items-center justify-center gap-6 w-full px-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => speakJapanese(sanitize(currentItem.text))}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[20px] md:text-[22px]">volume_up</span>
+                    </button>
+                    <button
+                      onClick={() => setIsRandom(!isRandom)}
+                      className={`size-11 md:size-12 rounded-2xl flex items-center justify-center transition-all border ${isRandom ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400'}`}
+                    >
+                      <span className="material-symbols-outlined text-xl">casino</span>
+                    </button>
                   </div>
-                )}
 
-                {/* Refined Grid */}
-                <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle, #fff 0.5px, transparent 0.5px)', backgroundSize: '8%' }}></div>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-[1px] h-[60%] bg-white/[0.03]" />
-                  <div className="absolute w-[60%] h-[1px] bg-white/[0.03]" />
+                  <div className="h-8 w-px bg-white/10 mx-1" />
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={undoPath}
+                      disabled={paths.length === 0}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[20px] md:text-[22px]">undo</span>
+                    </button>
+                    <button
+                      onClick={clearCanvas}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[22px] md:text-[24px]">delete_sweep</span>
+                    </button>
+                    <button
+                      onClick={() => setShowGuide(!showGuide)}
+                      className={`size-11 md:size-12 rounded-2xl flex items-center justify-center transition-all border ${showGuide ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-white/5 border-white/5 text-gray-500'}`}
+                    >
+                      <span className="material-symbols-outlined text-[20px] md:text-[22px]">{showGuide ? 'visibility' : 'visibility_off'}</span>
+                    </button>
+                  </div>
                 </div>
-              </motion.div>
-            </AnimatePresence>
+              </div>
 
-            {/* Floating Action Buttons (Left) */}
-            <div className="absolute bottom-12 left-8 z-50 flex items-center gap-3">
-              <button
-                onClick={() => speakJapanese(sanitize(currentItem.text))}
-                className="size-12 rounded-2xl bg-white/5 hover:bg-indigo-500/20 text-white/40 hover:text-indigo-400 flex items-center justify-center transition-all border border-white/5 backdrop-blur-lg"
-              >
-                <span className="material-symbols-outlined text-[22px]">volume_up</span>
-              </button>
-              <button
-                onClick={() => setIsRandom(!isRandom)}
-                className={`size-12 rounded-2xl flex items-center justify-center transition-all border backdrop-blur-lg ${isRandom ? 'bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 'bg-white/5 border-white/5 text-white/20'}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">casino</span>
-              </button>
+              <div className="pb-2">
+                <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] flex items-center gap-2 opacity-30">
+                  Precision Writing Mode
+                </p>
+              </div>
             </div>
-
-            {/* Floating Action Buttons (Right) */}
-            <div className="absolute bottom-12 right-8 z-50 flex items-center gap-3">
-              <button
-                onClick={undoPath}
-                disabled={paths.length === 0}
-                className="size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white/20 hover:text-white/60 disabled:opacity-5 flex items-center justify-center transition-all border border-white/5 backdrop-blur-lg"
-              >
-                <span className="material-symbols-outlined text-[22px]">undo</span>
-              </button>
-              <button
-                onClick={clearCanvas}
-                className="size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-white/20 hover:text-red-400 flex items-center justify-center transition-all border border-white/5 backdrop-blur-lg"
-              >
-                <span className="material-symbols-outlined text-[22px]">delete_sweep</span>
-              </button>
-              <button
-                onClick={() => setShowGuide(!showGuide)}
-                className={`size-12 rounded-2xl flex items-center justify-center transition-all border backdrop-blur-lg ${showGuide ? 'bg-white/10 text-white/60' : 'bg-white/5 border-white/5 text-white/10'}`}
-              >
-                <span className="material-symbols-outlined text-[22px]">{showGuide ? 'visibility' : 'visibility_off'}</span>
-              </button>
-            </div>
-
-            {/* Bottom Edge Swipe Handle (Ultra Minimal) */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[40%] h-1 z-[60] bg-white/[0.05] rounded-full overflow-hidden">
-              <motion.div
-                style={{ x: useTransform(x, [-100, 100], [-20, 20]) }}
-                className="w-full h-full bg-indigo-500/40"
-              />
-            </div>
-
-            <motion.div
-              className="absolute bottom-0 left-0 w-full h-16 z-50 cursor-ew-resize"
-              onPan={(_, info) => {
-                x.set(info.offset.x);
-              }}
-              onPanEnd={(_, info) => {
-                if (info.offset.x > 100) navigateItems('prev');
-                else if (info.offset.x < -100) navigateItems('next');
-                else {
-                  animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
-                }
-              }}
-            />
           </div>
         </motion.div>
       </motion.div>
