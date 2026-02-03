@@ -107,3 +107,29 @@ export function useGrammar() {
 
     return { grammarData, isLoading, error, refresh };
 }
+
+/**
+ * 모든 학습 진행 데이터를 관리하는 커스텀 훅 (Mastery Board용)
+ */
+export function useMasteryData() {
+    const [progressData, setProgressData] = useState<import('@/types/learning').LearningProgress[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const refresh = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await vocabService.getAllProgress();
+            setProgressData(data);
+        } catch (err) {
+            console.error('Failed to fetch mastery data:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
+    return { progressData, isLoading, refresh };
+}

@@ -1,43 +1,43 @@
-/**
- * Simple SRS (Spaced Repetition System) implementation based on SM-2 algorithm.
- */
-
-export interface SRSData {
-    interval: number; // Days until next review
-    repetition: number; // Number of successful consecutive repetitions
-    ease_factor: number; // Ease factor for calculating interval
-}
+import { FSRSState, LearningProgress } from '@/types/learning';
+import { FSRSEngine, Rating } from './fsrs';
 
 /**
- * Calculates new SRS data based on user performance.
- * @param quality 0-5 (0: total failure, 5: perfect response)
- * @param currentData Current SRS state
+ * FSRS v4 (Free Spaced Repetition Scheduler) Wrapper
  */
-export const calculateSRS = (quality: number, currentData: SRSData): SRSData => {
-    let { interval, repetition, ease_factor } = currentData;
 
-    if (quality >= 3) {
-        if (repetition === 0) {
-            interval = 1;
-        } else if (repetition === 1) {
-            interval = 6;
-        } else {
-            interval = Math.round(interval * ease_factor);
-        }
-        repetition += 1;
-    } else {
-        repetition = 0;
-        interval = 1;
+export const calculateFSRS = (
+    rating: Rating,
+    current: LearningProgress
+): LearningProgress => {
+    const engine = new FSRSEngine();
+
+    // 신규 항목인 경우 초기화
+    if (current.stability === 0 && current.state === FSRSState.New) {
+        return engine.init(rating);
     }
 
-    ease_factor = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-    if (ease_factor < 1.3) ease_factor = 1.3;
-
-    return { interval, repetition, ease_factor };
+    // 기존 항목인 경우 복습 알고리즘 실행
+    return engine.review(current, rating);
 };
 
-export const getNextReviewDate = (interval: number): Date => {
+export const getNextReviewDate = (days: number): Date => {
     const date = new Date();
-    date.setDate(date.getDate() + interval);
+    // 분 단위 정밀도를 위해 ms 단위로 가산
+    date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
     return date;
+};
+
+/**
+ * FSRS 기반 망각 위험도(Retrievability) 계산
+ * @param stability 현재 안정도
+ * @param lastReviewAt 마지막 복습 시점
+ */
+export const calculateRetrievability = (stability: number, lastReviewAt: string): number => {
+    if (stability === 0) return 0;
+    const now = new Date();
+    const last = new Date(lastReviewAt);
+    const elapsedDays = Math.max(0, (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+    // FSRS v4 Formula: R = (1 + elapsed_days / (9 * stability))^-1
+    return Math.pow(1 + elapsedDays / (9 * stability), -1);
 };
