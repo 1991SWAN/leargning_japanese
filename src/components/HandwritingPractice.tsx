@@ -1,180 +1,268 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, animate } from 'framer-motion';
 import { speakJapanese } from '@/lib/tts';
-import { FSRSState, LearningProgress } from '@/types/learning';
-import { calculateFSRS, getNextReviewDate } from '@/lib/srs';
-import { vocabService } from '@/lib/services/supabaseService';
-import FuriganaText from './common/FuriganaText';
+import { KanaValidator, ValidationResult } from '@/lib/kana-validator';
+import { KANA_REFERENCE_DATA } from '@/lib/kana-data';
+import { FSRSEngine, Rating, FSRSCard } from '@/lib/fsrs-engine';
+import { masteryService } from '@/lib/services/supabaseService';
 
-export interface LearningItem {
-  id: string;
-  type: 'kana' | 'vocabulary' | 'grammar';
+interface HandwritingItem {
   text: string;
   reading: string;
-  meaning?: string;
-  examples?: { jp: string; ko: string; reading?: string }[];
-  srs_data?: LearningProgress | null;
 }
 
-interface UniversalLearningModalProps {
-  items: LearningItem[];
-  initialId?: string | null;
+interface HandwritingPracticeProps {
+  items: HandwritingItem[];
+  initialText?: string | null;
   onClose: () => void;
-  onComplete?: () => void;
 }
 
-export default function UniversalLearningModal({ items, initialId, onClose, onComplete }: UniversalLearningModalProps) {
+export default function HandwritingPractice({ items, initialText, onClose }: HandwritingPracticeProps) {
+  const dragControls = useDragControls();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealStep, setRevealStep] = useState(0); // 0: Question, 1: Reveal & Rate
   const [showGuide, setShowGuide] = useState(true);
+  const [isRandom, setIsRandom] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [paths, setPaths] = useState<any[]>([]);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Swipe Gesture State
+  // FSRS & Validation State
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [fsrsData, setFsrsData] = useState<FSRSCard | null>(null);
+  const fsrs = useRef(new FSRSEngine()).current;
+
+  // Swipe Animation State
   const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  // Visual Feedback for Gestures
-  const cardBackground = useTransform(
-    [x, y],
-    ([latestX, latestY]: any) => {
-      if (latestY < -100) return 'rgba(16, 185, 129, 0.1)'; // UP: Easy (Emerald)
-      if (latestY > 100) return 'rgba(239, 68, 68, 0.1)';  // DOWN: Again (Red)
-      if (latestX < -100) return 'rgba(249, 115, 22, 0.1)'; // LEFT: Hard (Orange)
-      if (latestX > 100) return 'rgba(59, 130, 246, 0.1)';  // RIGHT: Good (Blue)
-      return 'rgba(255, 255, 255, 0.05)';
-    }
-  );
+  const opacity = useTransform(x, [-200, 0, 200], [0, 1, 0]);
+  const scale = useTransform(x, [-200, 0, 200], [0.95, 1, 0.95]);
+  const rotateY = useTransform(x, [-200, 0, 200], [-15, 0, 15]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasSetInitialIndex = useRef(false);
 
-  const currentItem = items[currentIndex];
+  const sanitize = (text: string) => text ? text.replace(/\[[^\]]+\]/g, '') : '';
 
   useEffect(() => {
-    if (initialId) {
-      const index = items.findIndex(item => item.id === initialId);
-      if (index !== -1) setCurrentIndex(index);
+    if (initialText && !hasSetInitialIndex.current) {
+      const index = items.findIndex((item: HandwritingItem) => sanitize(item.text) === sanitize(initialText));
+      if (index !== -1) {
+        setCurrentIndex(index);
+      }
+      hasSetInitialIndex.current = true;
     }
-  }, [initialId, items]);
+  }, [initialText, items]);
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (revealStep === 0) setRevealStep(1);
-      }
-      if (revealStep === 1) {
-        if (e.key === '1') handleRating(1);
-        if (e.key === '2') handleRating(2);
-        if (e.key === '3') handleRating(3);
-        if (e.key === '4') handleRating(4);
-      }
+      if (e.key === 'ArrowRight') navigateItems('next');
+      if (e.key === 'ArrowLeft') navigateItems('prev');
       if (e.key === 'Escape') onClose();
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [revealStep, currentIndex]);
+  }, [currentIndex, isRandom, onClose]);
 
-  // Canvas Resize Logic
+  // Handle Resize and DPI
   useEffect(() => {
     if (!containerRef.current) return;
-    const updateSize = () => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) setCanvasSize({ width: rect.width, height: rect.height });
+
+    const updateCanvasSize = () => {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container.getBoundingClientRect();
+
+      // Set display size
+      setCanvasSize({ width: rect.width, height: rect.height });
+
+      // Set internal resolution
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      // Sync context
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(dpr, dpr);
+        redrawCanvas();
+      }
     };
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
+
+    const observer = new ResizeObserver(updateCanvasSize);
+    observer.observe(containerRef.current);
+    updateCanvasSize();
+
+    return () => observer.disconnect();
+  }, [currentIndex]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvasSize.width === 0) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvasSize.width * dpr;
-    canvas.height = canvasSize.height * dpr;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = '#6366f1';
-
-      ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
-      paths.forEach(path => {
-        if (path.length < 2) return;
-        ctx.beginPath();
-        ctx.moveTo(path[0].x, path[0].y);
-        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
-        ctx.stroke();
-      });
-    }
+    redrawCanvas();
   }, [paths, canvasSize]);
 
-  const handleRating = async (rating: 1 | 2 | 3 | 4) => {
-    if (isProcessing) return;
-    setIsProcessing(true);
+  const redrawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvasSize.width === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    const currentSRS = currentItem.srs_data || {
-      stability: 0, difficulty: 0, elapsed_days: 0, scheduled_days: 0, lapses: 0, state: FSRSState.New
-    };
+    const dpr = window.devicePixelRatio || 1;
 
-    const nextSRS = calculateFSRS(rating, currentSRS as any);
-    const nextDate = getNextReviewDate(nextSRS.scheduled_days);
+    // Reset and apply DPI scale
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
-    try {
-      await vocabService.updateSRS(currentItem.id, {
-        ...nextSRS,
-        next_review_at: nextDate.toISOString(),
-        status: rating >= 3 ? 'reviewing' : 'learning'
+    // Line Styles (Must be set after context reset)
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(5, canvasSize.width / 40);
+    ctx.strokeStyle = '#6366f1';
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = 'rgba(99, 102, 241, 0.4)';
+
+    paths.forEach(path => {
+      if (path.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x * canvasSize.width, path[0].y * canvasSize.height);
+      path.forEach((point: any) => {
+        ctx.lineTo(point.x * canvasSize.width, point.y * canvasSize.height);
       });
+      ctx.stroke();
+    });
+  };
 
-      // Navigate to next or complete
-      if (currentIndex < items.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setRevealStep(0);
-        setPaths([]);
-      } else {
-        onComplete?.();
-        onClose();
-      }
-    } catch (err) {
-      console.error('FSRS Update Error:', err);
-    } finally {
-      setIsProcessing(false);
-      animate(x, 0);
-      animate(y, 0);
-    }
+  const getCoordinates = (e: any) => {
+    const container = containerRef.current;
+    if (!container) return { x: 0, y: 0 };
+    const rect = container.getBoundingClientRect();
+
+    const clientX = (e.touches ? e.touches[0].clientX : (e.clientX || 0));
+    const clientY = (e.touches ? e.touches[0].clientY : (e.clientY || 0));
+
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    return { x, y };
   };
 
   const startDrawing = (e: any) => {
+    const { x, y } = getCoordinates(e);
+    // Boundary check for swipe zone
+    if (y > 0.88) return;
+
     setIsDrawing(true);
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    setPaths(prev => [...prev, [{ x: clientX - rect.left, y: clientY - rect.top }]]);
+    setPaths(prev => [...prev, [{ x, y }]]);
   };
 
   const draw = (e: any) => {
     if (!isDrawing) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    if (e.cancelable) e.preventDefault();
+    const { x, y } = getCoordinates(e);
+
     setPaths(prev => {
       const newPaths = [...prev];
-      newPaths[newPaths.length - 1].push({ x: clientX - rect.left, y: clientY - rect.top });
+      if (newPaths.length === 0) return prev;
+      const lastPath = [...newPaths[newPaths.length - 1]];
+      lastPath.push({ x, y });
+      newPaths[newPaths.length - 1] = lastPath;
       return newPaths;
     });
   };
+
+  const endDrawing = () => setIsDrawing(false);
+  const clearCanvas = () => setPaths([]);
+  const undoPath = () => setPaths(prev => prev.slice(0, -1));
+
+  const navigateItems = (dir: 'prev' | 'next') => {
+    if (isRandom) {
+      setCurrentIndex(Math.floor(Math.random() * items.length));
+    } else {
+      if (dir === 'next' && currentIndex < items.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else if (dir === 'prev' && currentIndex > 0) {
+        setCurrentIndex(prev => prev - 1);
+      }
+    }
+    clearCanvas();
+    setValidation(null);
+    x.set(0); // Reset swipe position
+  };
+
+  // Load FSRS data when character changes
+  useEffect(() => {
+    const loadFSRS = async () => {
+      const char = sanitize(currentItem.text);
+      try {
+        const record = await masteryService.getRecord('KANA', char);
+        if (record) {
+          setFsrsData({
+            stability: record.stability,
+            difficulty: record.difficulty,
+            reps: record.reps,
+            lapses: record.lapses,
+            state: record.state,
+            last_review: record.last_review ? new Date(record.last_review) : undefined,
+            next_review: new Date(record.next_review),
+            elapsed_days: 0,
+            scheduled_days: 0
+          });
+        } else {
+          setFsrsData(null);
+        }
+      } catch (err) {
+        console.error('Failed to load FSRS data:', err);
+      }
+    };
+    loadFSRS();
+  }, [currentIndex]);
+
+  const handleAnalyze = () => {
+    const char = sanitize(currentItem.text);
+    const reference = KANA_REFERENCE_DATA[char];
+    if (!reference) return;
+    const result = KanaValidator.validate(paths, reference);
+    setValidation(result);
+  };
+
+  const handleManualRating = async (rating: Rating) => {
+    const char = sanitize(currentItem.text);
+    const currentCard = fsrsData || fsrs.initCard();
+    const { card } = fsrs.review(currentCard, rating);
+
+    setFsrsData(card);
+
+    // Save to DB
+    try {
+      await masteryService.updateRecord({
+        item_type: 'KANA',
+        item_id: char,
+        stability: card.stability,
+        difficulty: card.difficulty,
+        reps: card.reps,
+        lapses: card.lapses,
+        state: card.state,
+        last_review: new Date().toISOString(),
+        next_review: card.next_review?.toISOString() || new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Failed to save FSRS data:', err);
+    }
+
+    // Auto navigate to next if Good or Easy
+    if (rating === Rating.Good || rating === Rating.Easy) {
+      setTimeout(() => navigateItems('next'), 500);
+    } else {
+      clearCanvas();
+      setValidation(null);
+    }
+  };
+
+  if (!items || items.length === 0) return null;
+
+  const currentItem = items[currentIndex] || items[0];
 
   return (
     <AnimatePresence>
@@ -182,164 +270,210 @@ export default function UniversalLearningModal({ items, initialId, onClose, onCo
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 md:p-10"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          className="relative w-full max-w-4xl h-full max-h-[850px] flex flex-col gap-6"
+          initial={{ scale: 0.9, opacity: 0, y: 100 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 100 }}
+          drag="y"
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.5 }}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 80 || info.velocity.y > 300) {
+              onClose();
+            }
+          }}
+          className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative flex flex-col"
+          onClick={e => e.stopPropagation()}
         >
-          {/* Header Area */}
-          <div className="flex items-center justify-between px-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">
-                {currentItem.type.toUpperCase()} PRACTICE
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="h-1 w-24 bg-white/5 rounded-full overflow-hidden">
+          {/* Drag Handle (Massively Expanded Touch Area) */}
+          <div
+            onPointerDown={e => dragControls.start(e)}
+            className="absolute top-0 left-0 w-full h-24 z-50 flex items-start justify-center pt-3 cursor-grab active:cursor-grabbing group touch-none"
+          >
+            {/* Visual Handle */}
+            <div className="w-12 h-1 rounded-full bg-white/10 group-active:bg-indigo-500/50 transition-colors" />
+          </div>
+
+          <div className="pt-12 pb-4 px-4 md:px-8 flex flex-col items-center gap-4 md:gap-6 flex-1">
+            {/* Main Area: Canvas Container */}
+            <div className="w-full flex items-center justify-center flex-1 max-h-[50vh] md:max-h-[60vh]">
+              <div className="flex-1 max-w-[500px] aspect-square relative group/canvas">
+                <AnimatePresence mode="wait">
                   <motion.div
-                    className="h-full bg-indigo-500"
-                    animate={{ width: `${((currentIndex + 1) / items.length) * 100}%` }}
-                  />
-                </div>
-                <span className="text-[10px] font-bold text-gray-500">{currentIndex + 1} / {items.length}</span>
+                    key={currentItem.text}
+                    style={{ x, opacity, scale, rotateY, perspective: 1000 }}
+                    ref={containerRef}
+                    className="relative w-full h-full bg-black/40 rounded-[32px] md:rounded-[40px] border border-white/10 shadow-inner overflow-hidden flex items-center justify-center cursor-crosshair touch-none"
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={endDrawing}
+                      onMouseLeave={endDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={endDrawing}
+                      className="absolute inset-0 z-20 w-full h-full"
+                    />
+
+                    {showGuide && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300 select-none pb-4"
+                        style={{ opacity: 1.0 }}
+                      >
+                        <span className="text-[min(45vw,260px)] font-kanji text-white/50 leading-none">
+                          {sanitize(currentItem.text)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Grit Grid */}
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10%' }}></div>
+                    <div className="absolute inset-0 border-[0.5px] border-white/5 pointer-events-none opacity-20">
+                      <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/10" />
+                      <div className="absolute top-0 left-1/2 w-[1px] h-full bg-white/10" />
+                    </div>
+
+                    {/* Romaji Floating Badge */}
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
+                      <div className="px-4 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-md pointer-events-none transition-all flex items-center justify-center">
+                        <span className="text-2xl font-black text-indigo-300/90 uppercase tracking-[0.2em] leading-normal mb-[-2px] mr-[-0.2em]">
+                          {currentItem.reading}
+                        </span>
+                      </div>
+
+                      {/* FSRS Stats Badge */}
+                      {fsrsData && (
+                        <div className="px-2 py-0.5 rounded-lg bg-orange-500/10 border border-orange-500/20 backdrop-blur-md flex items-center gap-1.5">
+                          <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest leading-none">Stability</span>
+                          <span className="text-[10px] font-bold text-white leading-none">{fsrsData.stability.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AI Analysis Result Overlay */}
+                    <AnimatePresence>
+                      {validation && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className={`absolute top-20 right-8 px-3 py-1.5 rounded-xl border backdrop-blur-md font-black shadow-lg text-[10px] ${validation.totalScore > 80 ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-red-500/20 border-red-500/30 text-red-400'}`}
+                        >
+                          AI REF: {validation.totalScore}%
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Swipe Zone (Bottom) */}
+                    <div
+                      className="absolute bottom-0 left-0 w-full h-14 z-40 flex items-center justify-center cursor-ew-resize overflow-hidden"
+                      style={{ background: 'linear-gradient(to top, rgba(99, 102, 241, 0.2), transparent)' }}
+                    >
+                      <motion.div
+                        onPan={(_, info) => {
+                          x.set(info.offset.x);
+                        }}
+                        onPanEnd={(_, info) => {
+                          if (info.offset.x > 100) navigateItems('prev');
+                          else if (info.offset.x < -100) navigateItems('next');
+                          else {
+                            animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
+                          }
+                        }}
+                        className="w-full h-full flex items-center justify-center group"
+                      >
+                        <div className="flex items-center gap-2 opacity-30 group-hover:opacity-60 transition-opacity">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                          <span className="text-[10px] text-white font-black uppercase tracking-[0.5em] pl-2">Realtime Swipe</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
-            <button onClick={onClose} className="size-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all">
-              <span className="material-symbols-outlined text-gray-400">close</span>
-            </button>
-          </div>
 
-          {/* Main Card Zone */}
-          <div className="flex-1 relative group bg-white/5 border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
+            {/* Bottom Controls */}
+            <div className="w-full max-w-xl flex flex-col items-center gap-4 mt-auto">
+              {/* Manual Rating Buttons (Always visible when drawing exists) */}
+              <div className="w-full grid grid-cols-4 gap-2 px-2">
+                {[
+                  { r: Rating.Again, l: 'Again', c: 'bg-red-500/10 text-red-500 border-red-500/20' },
+                  { r: Rating.Hard, l: 'Hard', c: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+                  { r: Rating.Good, l: 'Good', c: 'bg-green-500/10 text-green-400 border-green-500/20' },
+                  { r: Rating.Easy, l: 'Easy', c: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
+                ].map((btn) => (
+                  <button
+                    key={btn.r}
+                    onClick={() => handleManualRating(btn.r)}
+                    disabled={paths.length === 0}
+                    className={`py-3.5 rounded-2xl font-black text-[10px] border transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20 disabled:grayscale ${btn.c}`}
+                  >
+                    {btn.l}
+                  </button>
+                ))}
+              </div>
 
-            {/* Handwriting Canvas */}
-            <div ref={containerRef} className="absolute inset-0 z-20 cursor-crosshair touch-none">
-              <canvas
-                ref={canvasRef}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={() => setIsDrawing(false)}
-                onMouseLeave={() => setIsDrawing(false)}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={() => setIsDrawing(false)}
-                className="w-full h-full"
-              />
-            </div>
-
-            {/* Static Guide (Dynamic Opacity based on Stability) */}
-            {showGuide && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: !currentItem.srs_data || currentItem.srs_data.stability === 0
-                    ? 0.12  // New / Unlearned: More visible
-                    : Math.max(0.01, 0.1 * Math.pow(0.8, Math.log2(currentItem.srs_data.stability + 1))) // Adaptive
-                }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-              >
-                <span className="text-[min(40vw,300px)] font-kanji leading-none select-none">
-                  {currentItem.text}
-                </span>
-              </motion.div>
-            )}
-
-            {/* Prompt Layer (Click to reveal) */}
-            <AnimatePresence mode="wait">
-              {revealStep === 0 ? (
-                <motion.div
-                  key="prompt"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  onClick={() => setRevealStep(1)}
-                  className="absolute inset-0 z-30 flex flex-col items-center justify-center p-10 cursor-pointer text-center"
-                >
-                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400/50 mb-4 animate-pulse">Tap to Reveal</span>
-                  <h2 className="text-4xl md:text-5xl font-black text-white/90 tracking-tight">
-                    {currentItem.meaning || currentItem.reading}
-                  </h2>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="reveal"
-                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                  className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none"
-                >
-                  <div className="p-8 rounded-[32px] bg-black/40 backdrop-blur-xl border border-white/10 flex flex-col items-center gap-4 text-center">
-                    <FuriganaText
-                      text={`${currentItem.text}${currentItem.reading ? `[${currentItem.reading}]` : ''}`}
-                      className="text-6xl md:text-7xl font-kanji font-black text-white"
-                    />
-                    <p className="text-xl font-bold text-indigo-200">{currentItem.meaning}</p>
+              <div className="w-full bg-white/5 border border-white/10 rounded-[32px] md:rounded-[40px] p-4 md:p-5 flex flex-col items-center gap-4 shadow-xl">
+                <div className="flex items-center justify-between gap-6 w-full px-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => speakJapanese(sanitize(currentItem.text))}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-primary/20 hover:text-primary flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[20px] md:text-[22px]">volume_up</span>
+                    </button>
+                    <button
+                      onClick={() => setIsRandom(!isRandom)}
+                      className={`size-11 md:size-12 rounded-2xl flex items-center justify-center transition-all border ${isRandom ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-gray-400'}`}
+                    >
+                      <span className="material-symbols-outlined text-xl">casino</span>
+                    </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            {/* Swipe & Rating Logic Layer */}
-            <div className="absolute inset-x-0 bottom-0 h-24 z-50 flex items-center justify-center p-4">
-              <motion.div
-                style={{ x, y, backgroundColor: cardBackground }}
-                drag={revealStep === 1}
-                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                onPan={(_, info) => {
-                  x.set(info.offset.x);
-                  y.set(info.offset.y);
-                }}
-                onPanEnd={(_, info) => {
-                  if (info.offset.y < -120) handleRating(4); // UP: Easy
-                  else if (info.offset.y > 120) handleRating(1); // DOWN: Again
-                  else if (info.offset.x < -120) handleRating(2); // LEFT: Hard
-                  else if (info.offset.x > 120) handleRating(3); // RIGHT: Good
-                  else {
-                    animate(x, 0); animate(y, 0);
-                  }
-                }}
-                className="w-full max-w-sm h-12 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md cursor-grab active:cursor-grabbing"
-              >
-                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
-                  <span className="material-symbols-outlined text-sm">swipe</span>
-                  {revealStep === 0 ? "Handwrite & Tap to Check" : "Swipe to Rate Performance"}
+                  {/* Context-aware Analyze Button */}
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={paths.length === 0}
+                    className="flex-1 py-3 px-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-indigo-500/20 text-indigo-300 font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2 text-xs"
+                  >
+                    <span className="material-symbols-outlined text-lg">analytics</span>
+                    <span className="hidden md:inline">Inspect (Ref)</span>
+                    <span className="md:hidden">Ref</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={undoPath}
+                      disabled={paths.length === 0}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-indigo-300 disabled:opacity-20 flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[20px] md:text-[22px]">undo</span>
+                    </button>
+                    <button
+                      onClick={clearCanvas}
+                      className="size-11 md:size-12 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-outlined text-[22px] md:text-[24px]">delete_sweep</span>
+                    </button>
+                  </div>
                 </div>
+              </div>
 
-                {/* Gesture Hints in Reveal State */}
-                <AnimatePresence>
-                  {revealStep === 1 && (
-                    <>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -top-16 text-emerald-400 flex flex-col items-center gap-1">
-                        <span className="material-symbols-outlined">expand_less</span>
-                        <span className="text-[8px] font-black">EASY</span>
-                      </motion.div>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -bottom-16 text-red-400 flex flex-col items-center gap-1">
-                        <span className="text-[8px] font-black">AGAIN</span>
-                        <span className="material-symbols-outlined">expand_more</span>
-                      </motion.div>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -left-20 text-orange-400 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">chevron_left</span>
-                        <span className="text-[8px] font-black">HARD</span>
-                      </motion.div>
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute -right-20 text-blue-400 flex items-center gap-1">
-                        <span className="text-[8px] font-black">GOOD</span>
-                        <span className="material-symbols-outlined text-sm">chevron_right</span>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+              <div className="pb-2 hidden md:block">
+                <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] flex items-center gap-2 opacity-30">
+                  User Sovereignty Mastery Mode
+                </p>
+              </div>
             </div>
-          </div>
-
-          {/* Tools Area */}
-          <div className="flex items-center justify-center gap-4 pb-4">
-            <button onClick={() => setPaths([])} className="size-12 rounded-2xl bg-white/5 border border-white/10 hover:bg-red-500/10 text-red-400 flex items-center justify-center transition-all">
-              <span className="material-symbols-outlined">delete_sweep</span>
-            </button>
-            <button onClick={() => setShowGuide(!showGuide)} className={`size-12 rounded-2xl border transition-all flex items-center justify-center ${showGuide ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-white/5 text-gray-500 border-white/10'}`}>
-              <span className="material-symbols-outlined">{showGuide ? 'visibility' : 'visibility_off'}</span>
-            </button>
-            <button onClick={() => speakJapanese(currentItem.text)} className="size-12 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white flex items-center justify-center transition-all">
-              <span className="material-symbols-outlined">volume_up</span>
-            </button>
           </div>
         </motion.div>
       </motion.div>

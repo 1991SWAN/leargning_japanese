@@ -53,48 +53,35 @@ export interface ChatMessage {
     timestamp: number;
 }
 
-// FSRS v4 학습 상태 열거형
-export enum FSRSState {
-    New = 0,
-    Learning = 1,
-    Review = 2,
-    Relearning = 3
-}
-
-// 통합 학습 기록 타입 (FSRS v4 사양)
-export interface LearningProgress {
+// FSRS 기반 학습 상태 타입
+export interface FSRSMastery {
     id: string;
     user_id: string;
-    item_id: string; // vocabulary_id, kana_id 등 통합 관리
-    item_type: 'vocabulary' | 'kana' | 'grammar';
-
-    // FSRS 핵심 파라미터
+    item_type: 'KANA' | 'VOCAB' | 'GRAMMAR';
+    item_id: string;
     stability: number;
     difficulty: number;
-    elapsed_days: number;
-    scheduled_days: number;
+    reps: number;
     lapses: number;
-    state: FSRSState;
-
-    next_review_at: string;
-    last_review_at?: string;
-
-    // UI 표시용 (마스터 상태 등)
-    status: 'learning' | 'reviewing' | 'mastered';
+    state: number; // 0: New, 1: Learning, 2: Review, 3: Relearning
+    last_review: string | null;
+    next_review: string;
+    created_at?: string;
     updated_at?: string;
 }
 
-// 평가 로그 타입
-export interface SRSLog {
+// Deprecated: Old SRS 상태 타입 (SM-2 호환용으로 유지하되 점차 FSRSMastery로 이관)
+export interface LearningProgress {
     id: string;
     user_id: string;
-    item_id: string;
-    rating: 1 | 2 | 3 | 4; // Again, Hard, Good, Easy
-    stability: number;
-    difficulty: number;
-    elapsed_days: number;
-    scheduled_days: number;
-    review_at: string;
+    vocabulary_id: string;
+    interval: number;
+    repetition: number;
+    ease_factor: number;
+    next_review_at: string;
+    last_reviewed_at?: string;
+    status: 'learning' | 'reviewing' | 'mastered';
+    updated_at?: string;
 }
 
 // 대시보드 통계 타입

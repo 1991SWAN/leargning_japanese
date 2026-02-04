@@ -8,10 +8,9 @@ import { Grammar } from '@/types/learning';
 
 interface GrammarProps {
   lessons: Grammar[];
-  onSelectReview?: (id: string) => void;
 }
 
-export default function GrammarLessonView({ lessons, onSelectReview }: GrammarProps) {
+export default function GrammarLessonView({ lessons }: GrammarProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('전체');
   const [revealedExamples, setRevealedExamples] = useState<Set<number>>(new Set());
@@ -286,23 +285,6 @@ export default function GrammarLessonView({ lessons, onSelectReview }: GrammarPr
                         ))}
                       </div>
                     </div>
-                    {/* Integration with Universal Modal */}
-                    {onSelectReview && (
-                      <div className="mt-12 group">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => onSelectReview(current.id)}
-                          className="w-full py-5 rounded-3xl bg-primary text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/40 flex items-center justify-center gap-3"
-                        >
-                          <span className="material-symbols-outlined">psychology</span>
-                          Master this Pattern
-                        </motion.button>
-                        <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-4">
-                          Opens Intelligent Review Modal
-                        </p>
-                      </div>
-                    )}
                   </>
                 )}
               </div>

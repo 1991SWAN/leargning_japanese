@@ -4,19 +4,18 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VocabularyStudy from '@/components/VocabularyStudy';
 import GrammarLessonView from '@/components/GrammarLesson';
-import HandwritingPractice, { LearningItem } from '@/components/HandwritingPractice';
+import HandwritingPractice from '@/components/HandwritingPractice';
 import AITutor from '@/components/AITutor';
 import KanaChart from '@/components/KanaChart';
+import KanaSandbox from '@/components/KanaSandbox';
 import CircularProgress from '@/components/CircularProgress';
-import MasteryBoard from '@/components/MasteryBoard';
 import { HIRAGANA, KATAKANA } from '@/constants/kana';
 
 // Hooks
-import { useVocabulary, useGrammar, useLMSStats, useMasteryData } from '@/lib/hooks/useLearningData';
-import { calculateRetrievability } from '@/lib/srs';
+import { useVocabulary, useGrammar, useLMSStats } from '@/lib/hooks/useLearningData';
 
 // Types
-type ModuleType = 'dashboard' | 'kana' | 'vocab' | 'grammar' | 'ai-tutor' | 'settings' | 'progress';
+type ModuleType = 'dashboard' | 'kana' | 'vocab' | 'grammar' | 'ai-tutor' | 'settings' | 'progress' | 'ui-lab';
 
 export default function Home() {
   const [activeModule, setActiveModule] = useState<ModuleType>('dashboard');
@@ -24,41 +23,18 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [kanaTab, setKanaTab] = useState<'hiragana' | 'katakana'>('hiragana');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-  const [learningItems, setLearningItems] = useState<LearningItem[]>([]);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [handwritingItems, setHandwritingItems] = useState<{ text: string, reading: string }[]>([]);
 
   // Learning Data
   const { vocabData } = useVocabulary();
   const { grammarData } = useGrammar();
-  const { progressData } = useMasteryData();
-
-  // FSRS Forget Meter Stats
-  const forgetStats = useMemo(() => {
-    if (!progressData.length) return { avgRetention: 100, criticalCount: 0 };
-
-    const retentions = progressData.map(p =>
-      calculateRetrievability(p.stability, p.last_review_at || new Date().toISOString())
-    );
-
-    const avg = retentions.reduce((a, b) => a + b, 0) / retentions.length;
-    const critical = retentions.filter(r => r < 0.8).length; // Retention < 80%
-
-    return {
-      avgRetention: Math.round(avg * 100),
-      criticalCount: critical
-    };
-  }, [progressData]);
 
   const handleKanaSelect = (char: string) => {
-    setSelectedTextId(char);
+    setSelectedText(char);
+    // 현재 선택된 탭에 맞춰 전체 리스트 전달
     const list = kanaTab === 'hiragana' ? HIRAGANA : KATAKANA;
-    setLearningItems(list.map(k => ({
-      id: k.char,
-      type: 'kana',
-      text: k.char,
-      reading: k.romaji,
-      meaning: k.romaji
-    })));
+    setHandwritingItems(list.map(k => ({ text: k.char, reading: k.romaji })));
     setIsModalOpen(true);
   };
 
@@ -76,6 +52,7 @@ export default function Home() {
       title: 'Practice',
       items: [
         { id: 'ai-tutor', label: 'AI Tutor', icon: 'smart_toy' },
+        { id: 'ui-lab', label: 'UI Laboratory', icon: 'science' },
         { id: 'progress', label: 'Analytics', icon: 'auto_graph' },
       ],
     },
@@ -194,9 +171,9 @@ export default function Home() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 relative`}>
         {/* Mobile Bottom Navigation (Visible only on mobile) */}
-        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] backdrop-blur-2xl bg-white/[0.08] rounded-3xl h-16 flex items-center border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] ring-1 ring-white/10 px-2">
+        <nav className={`md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] backdrop-blur-2xl bg-white/[0.08] rounded-3xl h-16 flex items-center border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] ring-1 ring-white/10 px-2 transition-all duration-300`}>
           {/* Sliding Menu Content Area */}
           <div className="flex-1 h-full overflow-hidden relative">
             <AnimatePresence mode="wait" initial={false}>
@@ -247,6 +224,7 @@ export default function Home() {
                 >
                   {[
                     { id: 'ai-tutor', label: 'Sensei', icon: 'smart_toy' },
+                    { id: 'ui-lab', label: 'Lab', icon: 'science' },
                     { id: 'progress', label: 'Stats', icon: 'auto_graph' },
                     { id: 'settings', label: 'Settings', icon: 'settings' }
                   ].map((item) => (
@@ -270,7 +248,6 @@ export default function Home() {
                       )}
                     </button>
                   ))}
-                  <div className="min-w-[60px]" /> {/* Symmetry spacer */}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -504,19 +481,24 @@ export default function Home() {
               </motion.div>
             )}
 
+            {activeModule === 'ui-lab' && (
+              <motion.div key="ui-lab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <KanaSandbox />
+              </motion.div>
+            )}
+
             {activeModule === 'vocab' && (
               <motion.div key="vocab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <VocabularyStudy
                   vocabList={vocabData}
                   onSelectWriting={(word) => {
-                    setSelectedTextId(word);
-                    setLearningItems(vocabData.map(v => ({
-                      id: v.id,
-                      type: 'vocabulary',
+                    setSelectedText(word);
+                    // 단어장에서는 현재 필터링된 리스트를 전달하여 연속 연습 지원
+                    // (VocabularyStudy 내부의 filteredList를 외부로 빼거나, 
+                    // 간단히 vocabData 전체를 전달하는 방식으로 구현)
+                    setHandwritingItems(vocabData.map(v => ({
                       text: v.kanji || v.furigana,
-                      reading: v.furigana || '',
-                      meaning: v.meaning,
-                      srs_data: v.srs_data as any
+                      reading: v.furigana || ''
                     })));
                     setIsModalOpen(true);
                   }}
@@ -526,21 +508,7 @@ export default function Home() {
 
             {activeModule === 'grammar' && (
               <motion.div key="grammar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <GrammarLessonView
-                  lessons={grammarData}
-                  onSelectReview={(id) => {
-                    setSelectedTextId(id);
-                    setLearningItems(grammarData.map(g => ({
-                      id: g.id,
-                      type: 'grammar',
-                      text: g.pattern,
-                      reading: g.connection,
-                      meaning: g.meaning,
-                      srs_data: (g as any).srs_data
-                    })));
-                    setIsModalOpen(true);
-                  }}
-                />
+                <GrammarLessonView lessons={grammarData} />
               </motion.div>
             )}
 
@@ -550,11 +518,6 @@ export default function Home() {
               </motion.div>
             )}
 
-            {activeModule === 'progress' && (
-              <motion.div key="progress" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <MasteryBoard progressItems={progressData} vocabList={vocabData} />
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
 
@@ -565,61 +528,34 @@ export default function Home() {
               initial={{ y: 100, x: '-50%', opacity: 0 }}
               animate={{ y: 0, x: '-50%', opacity: 1 }}
               exit={{ y: 100, x: '-50%', opacity: 0 }}
-              className="fixed bottom-28 md:bottom-10 left-1/2 z-40 w-[94%] md:w-[680px]"
+              className="fixed bottom-28 md:bottom-10 left-1/2 z-40 w-[90%] md:w-[600px]"
             >
               <div
                 onClick={() => setActiveModule('vocab')}
-                className="glass-panel backdrop-blur-2xl bg-white/[0.05] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[32px] p-1 flex items-center gap-1 group cursor-pointer hover:bg-white/[0.08] transition-all overflow-hidden"
+                className="glass-card backdrop-blur-xl bg-red-500/10 border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)] rounded-full px-6 py-3 flex items-center justify-between animate-bounce hover:animate-none cursor-pointer group transition-all hover:bg-red-500/20"
               >
-                {/* Forget Meter Visual */}
-                <div className="flex-1 flex items-center gap-6 px-6 py-4">
-                  <div className="relative size-14 shrink-0">
-                    <svg className="size-full -rotate-90">
-                      <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                      <motion.circle
-                        cx="28" cy="28" r="24" fill="none"
-                        stroke={forgetStats.avgRetention < 85 ? '#ef4444' : (forgetStats.avgRetention < 92 ? '#f59e0b' : '#3b82f6')}
-                        strokeWidth="6"
-                        strokeDasharray="150"
-                        initial={{ strokeDashoffset: 150 }}
-                        animate={{ strokeDashoffset: 150 - (150 * forgetStats.avgRetention / 100) }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-black text-white">{forgetStats.avgRetention}%</span>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
+                    <span className="material-symbols-outlined text-white text-sm">priority_high</span>
                   </div>
-
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-black tracking-[0.2em] text-gray-500">Memory Integrity</span>
-                      {forgetStats.criticalCount > 0 && <span className="size-1.5 rounded-full bg-red-500 animate-ping" />}
-                    </div>
-                    <p className="text-sm md:text-base font-bold text-white leading-tight">
-                      {forgetStats.avgRetention > 90 ? 'Your memory is strong!' : (forgetStats.avgRetention > 80 ? 'Some words are fading...' : 'Urgent review required!')}
-                    </p>
-                    <p className="text-[10px] md:text-xs font-medium text-gray-400">
-                      {forgetStats.criticalCount > 0 ? `${forgetStats.criticalCount} items have fallen below 80% recall probability.` : 'All items are currently above the safety threshold.'}
-                    </p>
+                  <div>
+                    <p className="text-white font-bold text-sm">Review Needed</p>
+                    <p className="text-red-200 text-xs">24 words are ready for SRS review</p>
                   </div>
                 </div>
-
-                <button className="h-[72px] px-8 rounded-[28px] bg-primary text-white text-xs font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 shadow-xl shadow-primary/30 mr-1 whitespace-nowrap">
+                <button className="bg-white text-red-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
                   Review Now
-                  <span className="material-symbols-outlined text-lg">bolt</span>
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-      {/* Handwriting Modal (Universal) */}
+      {/* Handwriting Modal */}
       {isModalOpen && (
         <HandwritingPractice
-          items={learningItems}
-          initialId={selectedTextId}
+          items={handwritingItems}
+          initialText={selectedText}
           onClose={() => setIsModalOpen(false)}
         />
       )}
