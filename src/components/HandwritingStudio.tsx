@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform, animate } from 'framer-motion';
-import { speakJapanese } from '@/lib/tts';
+import { speakJapanese, preloadJapanese } from '@/lib/tts';
 import { KanaValidator, ValidationResult } from '@/lib/kana-validator';
 import { KANA_REFERENCE_DATA } from '@/lib/kana-data';
 import { FSRSEngine, Rating, FSRSCard } from '@/lib/fsrs-engine';
@@ -15,18 +15,18 @@ interface HandwritingItem {
 
 type StudioMode = 'practice' | 'review';
 
-interface RecallStudioProps {
+interface HandwritingStudioProps {
     items: HandwritingItem[];
     initialText?: string | null;
     mode?: StudioMode;
+    inline?: boolean;
     onClose: () => void;
 }
 
 /**
- * RecallStudio: The experimental version of the handwriting practice UI.
- * This file is independent from the production HandwritingPractice.tsx.
+ * HandwritingStudio: The official handwriting practice and review UI.
  */
-export default function RecallStudio({ items, initialText, mode = 'practice', onClose }: RecallStudioProps) {
+export default function HandwritingStudio({ items, initialText, mode = 'practice', inline = false, onClose }: HandwritingStudioProps) {
     const dragControls = useDragControls();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showGuide, setShowGuide] = useState(mode === 'practice');
@@ -35,6 +35,14 @@ export default function RecallStudio({ items, initialText, mode = 'practice', on
     const [isDrawing, setIsDrawing] = useState(false);
     const [paths, setPaths] = useState<any[]>([]);
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+    // Preload neighboring audio for instant playback
+    useEffect(() => {
+        const nextIdx = currentIndex + 1;
+        const prevIdx = currentIndex - 1;
+        if (nextIdx < items.length) preloadJapanese(sanitize(items[nextIdx].text));
+        if (prevIdx >= 0) preloadJapanese(sanitize(items[prevIdx].text));
+    }, [currentIndex, items]);
 
     // FSRS & Validation State
     const [validation, setValidation] = useState<ValidationResult | null>(null);
@@ -278,42 +286,43 @@ export default function RecallStudio({ items, initialText, mode = 'practice', on
     return (
         <AnimatePresence>
             <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                onClick={onClose}
+                initial={inline ? undefined : { opacity: 0 }}
+                animate={inline ? undefined : { opacity: 1 }}
+                exit={inline ? undefined : { opacity: 0 }}
+                className={inline ? "w-full h-full flex items-center justify-center p-0" : "fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"}
+                onClick={inline ? undefined : onClose}
             >
                 <motion.div
-                    initial={{ scale: 0.9, opacity: 0, y: 100 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 100 }}
-                    drag="y"
-                    dragControls={dragControls}
+                    initial={inline ? { opacity: 0, scale: 0.95 } : { scale: 0.9, opacity: 0, y: 100 }}
+                    animate={inline ? { opacity: 1, scale: 1 } : { scale: 1, opacity: 1, y: 0 }}
+                    exit={inline ? { opacity: 0, scale: 0.95 } : { scale: 0.9, opacity: 0, y: 100 }}
+                    drag={inline ? false : "y"}
+                    dragControls={inline ? undefined : dragControls}
                     dragListener={false}
                     dragConstraints={{ top: 0, bottom: 0 }}
                     dragElastic={{ top: 0, bottom: 0.5 }}
                     onDragEnd={(_, info) => {
-                        if (info.offset.y > 80 || info.velocity.y > 300) {
+                        if (!inline && (info.offset.y > 80 || info.velocity.y > 300)) {
                             onClose();
                         }
                     }}
-                    className="glass-panel w-full max-w-2xl rounded-[32px] md:rounded-[40px] overflow-hidden shadow-2xl border-white/10 relative flex flex-col"
+                    className={`w-full max-w-2xl overflow-hidden relative flex flex-col ${inline ? 'h-full flex-1' : 'glass-panel rounded-[32px] md:rounded-[40px] shadow-2xl border-white/10'}`}
                     onClick={e => e.stopPropagation()}
                 >
-                    {/* Drag Handle (Massively Expanded Touch Area) */}
-                    <div
-                        onPointerDown={e => dragControls.start(e)}
-                        className="absolute top-0 left-0 w-full h-24 z-50 flex items-start justify-center pt-3 cursor-grab active:cursor-grabbing group touch-none"
-                    >
-                        {/* Visual Handle */}
-                        <div className="w-12 h-1 rounded-full bg-white/10 group-active:bg-indigo-500/50 transition-colors" />
-                    </div>
+                    {/* Drag Handle (Hidden in inline mode) */}
+                    {!inline && (
+                        <div
+                            onPointerDown={e => dragControls.start(e)}
+                            className="absolute top-0 left-0 w-full h-24 z-50 flex items-start justify-center pt-3 cursor-grab active:cursor-grabbing group touch-none"
+                        >
+                            <div className="w-12 h-1 rounded-full bg-white/10 group-active:bg-indigo-500/50 transition-colors" />
+                        </div>
+                    )}
 
-                    <div className="pt-12 pb-4 px-4 md:px-8 flex flex-col items-center gap-4 md:gap-6 flex-1">
+                    <div className={`flex flex-col items-center gap-4 md:gap-6 flex-1 ${inline ? 'p-0 h-full' : 'pt-12 pb-4 px-4 md:px-8'}`}>
                         {/* Main Area: Canvas Container */}
-                        <div className="w-full flex items-center justify-center flex-1 max-h-[50vh] md:max-h-[60vh]">
-                            <div className="flex-1 max-w-[500px] aspect-square relative group/canvas">
+                        <div className={`w-full flex items-center justify-center ${inline ? 'flex-col h-full my-auto flex-1' : 'flex-1 max-h-[50vh] md:max-h-[60vh]'}`}>
+                            <div className={`flex-1 relative group/canvas w-full max-w-lg ${inline ? 'aspect-square max-h-[400px]' : 'aspect-square'}`}>
                                 <AnimatePresence mode="wait">
                                     <motion.div
                                         key={currentItem.text}
@@ -338,7 +347,7 @@ export default function RecallStudio({ items, initialText, mode = 'practice', on
                                                 className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300 select-none pb-4"
                                                 style={{ opacity: 1.0 }}
                                             >
-                                                <span className="text-[min(45vw,260px)] font-kanji text-white/50 leading-none">
+                                                <span className={`${sanitize(currentItem.text).length > 1 ? 'text-[min(32vw,180px)] tracking-[-0.1em]' : 'text-[min(45vw,260px)]'} font-kanji text-white/40 whitespace-nowrap transition-all duration-500`}>
                                                     {sanitize(currentItem.text)}
                                                 </span>
                                             </div>

@@ -4,12 +4,16 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VocabularyStudy from '@/components/VocabularyStudy';
 import GrammarLessonView from '@/components/GrammarLesson';
-import HandwritingPractice from '@/components/HandwritingPractice';
+import HandwritingStudio from '@/components/HandwritingStudio';
 import AITutor from '@/components/AITutor';
 import KanaChart from '@/components/KanaChart';
-import KanaSandbox from '@/components/KanaSandbox';
+import Sandbox from '@/components/Sandbox';
 import CircularProgress from '@/components/CircularProgress';
-import { HIRAGANA, KATAKANA } from '@/constants/kana';
+import {
+  HIRAGANA, KATAKANA,
+  HIRAGANA_DAKUTEN, KATAKANA_DAKUTEN,
+  HIRAGANA_YOON, KATAKANA_YOON
+} from '@/constants/kana';
 
 // Hooks
 import { useVocabulary, useGrammar, useLMSStats } from '@/lib/hooks/useLearningData';
@@ -24,17 +28,33 @@ export default function Home() {
   const [kanaTab, setKanaTab] = useState<'hiragana' | 'katakana'>('hiragana');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [studioMode, setStudioMode] = useState<'practice' | 'review'>('practice');
   const [handwritingItems, setHandwritingItems] = useState<{ text: string, reading: string }[]>([]);
 
   // Learning Data
   const { vocabData } = useVocabulary();
   const { grammarData } = useGrammar();
 
-  const handleKanaSelect = (char: string) => {
+  const handleKanaSelect = (char: string, mode: 'practice' | 'review' = 'practice', category: 'basic' | 'dakuten' | 'yoon' = 'basic') => {
     setSelectedText(char);
-    // 현재 선택된 탭에 맞춰 전체 리스트 전달
-    const list = kanaTab === 'hiragana' ? HIRAGANA : KATAKANA;
-    setHandwritingItems(list.map(k => ({ text: k.char, reading: k.romaji })));
+    setStudioMode(mode);
+
+    let list;
+    if (kanaTab === 'hiragana') {
+      if (category === 'dakuten') list = HIRAGANA_DAKUTEN;
+      else if (category === 'yoon') list = HIRAGANA_YOON;
+      else list = HIRAGANA;
+    } else {
+      if (category === 'dakuten') list = KATAKANA_DAKUTEN;
+      else if (category === 'yoon') list = KATAKANA_YOON;
+      else list = KATAKANA;
+    }
+
+    setHandwritingItems(
+      list
+        .filter(k => k.char !== '')
+        .map(k => ({ text: k.char, reading: k.romaji }))
+    );
     setIsModalOpen(true);
   };
 
@@ -483,7 +503,7 @@ export default function Home() {
 
             {activeModule === 'ui-lab' && (
               <motion.div key="ui-lab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <KanaSandbox />
+                <Sandbox vocabList={vocabData} />
               </motion.div>
             )}
 
@@ -493,9 +513,7 @@ export default function Home() {
                   vocabList={vocabData}
                   onSelectWriting={(word) => {
                     setSelectedText(word);
-                    // 단어장에서는 현재 필터링된 리스트를 전달하여 연속 연습 지원
-                    // (VocabularyStudy 내부의 filteredList를 외부로 빼거나, 
-                    // 간단히 vocabData 전체를 전달하는 방식으로 구현)
+                    setStudioMode('practice');
                     setHandwritingItems(vocabData.map(v => ({
                       text: v.kanji || v.furigana,
                       reading: v.furigana || ''
@@ -551,11 +569,12 @@ export default function Home() {
           )}
         </AnimatePresence>
       </main>
-      {/* Handwriting Modal */}
+      {/* Handwriting Modal (Studio) */}
       {isModalOpen && (
-        <HandwritingPractice
+        <HandwritingStudio
           items={handwritingItems}
           initialText={selectedText}
+          mode={studioMode}
           onClose={() => setIsModalOpen(false)}
         />
       )}
